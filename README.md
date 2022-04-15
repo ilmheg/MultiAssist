@@ -10,7 +10,7 @@ Essentially everything good in this project comes from Perchbird's work, everyth
 
 # Pre-requisites
 ### Required software
-* The latest release in [Releases](#) (or your own build of the project).
+* The latest release in [Releases](https://github.com/ilmheg/MultiAssist/releases) (or your own build of the project).
 * [VC++2012 32-bit Redist](https://www.microsoft.com/en-us/download/details.aspx?id=30679#)
     * Select "VSU_4\vcredist_x86.exe" when choosing which file to download.
     * This is required for Havok stuff, please install it.
