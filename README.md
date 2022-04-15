@@ -61,7 +61,7 @@ Most animations you will want to edit are located in 040000.win32.index, to open
 The contents of this index file are divided into folders such as chara/human and chara/monster. Skeletons will generally be located at `chara/{category}/{type_char}{id}/skeleton/base/b0001/skl_{type_char}{id}b0001.sklb`.
 
 
-For a quick reference on the different human folders, take a loot at this table.
+For a quick reference on the different human folders, take a look at this table.
 
 | Race/Gender       | Folder               | Notes  |
 | ------------------|----------------------| -------|
@@ -158,7 +158,7 @@ The resulting .pap file can be imported into FFXIV through TexTools by using the
 This project maintains the command line functionality of AnimAssist, both within animassist.exe and MultiAssist.exe. Using command line arguments will not initialize the GUI and at this point probably has better error reporting than the GUI. Here's a basic rundown of the commands, refer to the above Usage for further information.
 
 ### Extracting
-`multiasisst.exe extract -s original_skeleton_file.sklb -p original_pap_file.pap -a modified_animation.hkx -i <animation index> -o new_ffxiv_animation.pap -f <file type>`
+`multiasisst.exe extract -s original_skeleton_file.sklb -p original_pap_file.pap -a modified_animation.hkx -i <animation index> -o new_ffxiv_animation.pap -t <file type>`
 
 where `<file type>` is one of:   
 * fbx
