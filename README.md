@@ -19,6 +19,7 @@ Essentially everything good in this project comes from Perchbird's work, everyth
   * [Extracting an animation](#extracting-an-animation)
   * [Editing your exported animation](#editing-your-exported-animation)
   * [Repacking your edited animation](#repacking-your-edited-animation)
+  * [Getting your edited animation back into FFXIV](#getting-your-edited-animation-back-into-ffxiv)
 - [Command Line Usage](#optional-command-line-usage)
 - [Technical rundown of the process](#technical-rundown-of-the-process)
 - [Future development plans for MultiAssist](#future-development-plans-for-multiassist)
@@ -108,19 +109,19 @@ For this demonstration, I will be exporting the Fatter Cat skeleton and animatio
 
 The skeleton for Fatter Cat is listed under `chara/monster/m0512/skeleton/base/b0001/skl_m0512b0001.sklb`. We just need the .sklb file, so select it and extract the raw file again.
 
-With both the . sklb skeleton file and .pap animation file extracted we can move to MultiAssist. You may wish to move the files to a more convenient location. Note that the .pap and .sklb files will be nested within the same folder layout as described in FFXIV Explorer after extracting.
+With both the .sklb skeleton file and .pap animation file extracted we can move to MultiAssist. You may wish to move the files to a more convenient location. Note that the .pap and .sklb files will be nested within the same folder layout as described in FFXIV Explorer after extracting.
 
 
 ### Exporting editable animation files with MultiAssist
 After extracting our animation and skeleton file, we can finally open `MultiAssist.exe` to extract an editable animation file.
 
-With the Extract tab selected, we first should select our .pap and .sklb files. You can select these with the in-app file explorer by pressing [...] or by typing in a path manually.
+With the Extract tab selected, we first should select our .pap and .sklb files. You can select these with the in-app file explorer by pressing \[...\] or by typing in a path manually.
 
-With the paths to the respective files set, press [Submit] to populate the animations list in the lower left corner. If your .pap only has one animation in it, only a single animation with be displayed here, otherwise, select the animation you wish to extract. If you change the .pap file at any point, make sure to press submit once again.
+With the paths to the respective files set, press \[Submit\] to populate the animations list in the lower left corner. If your .pap only has one animation in it, only a single animation with be displayed here, otherwise, select the animation you wish to extract. If you change the .pap file at any point, make sure to press submit once again.
 
-The export options in the lower right corner allow you to select the file type and path of your exported animation file. I'll select .fbx and name my animation file export. Select your export directory and and press [Export] to begin exporting the file. This should be a very quick process. 
+The export options in the lower right corner allow you to select the file type and path of your exported animation file. I'll select .fbx and name my animation file export. Select your export directory and and press \[Export\] to begin exporting the file. This should be a very quick process. 
 
-Please make sure you have everything correctly inputted before pressing [Export]. If successful, there will be a success dialog displaying the export directory.
+Please make sure you have everything correctly inputted before pressing \[Export\]. If successful, there will be a success dialog displaying the export directory.
 
 ![j](gh/etab.png)
 
@@ -141,7 +142,7 @@ The exported file can be imported into your 3D editor of choice. Make sure you i
 
 After making edits to your animation, it should again be exported as an .fbx file before beginning the repacking process.
 
-### HKX (Packfile) [HavokMax]
+### HKX (Packfile) \[HavokMax\]
 
 From the [AnimAssist README.md](https://github.com/lmcintyre/AnimAssist/blob/main/README.md)
 > Open 3DS Max and check the Plug-in Manager to ensure HavokMax is properly installed.
@@ -164,11 +165,18 @@ As with the extraction process, select your .pap and .sklb file. These should be
 
 Select your edited .fbx or HavokMax export, and press submit to populate the animation list. You should select the animation you want to replace. This can technically be any animation, but generally you will want to replace the same animation you extracted.
 
-Enter a name and export directory into the Export options and press [Repack]. As always, make sure you fill out every field before pressing [Repack].
+Enter a name and export directory into the Export options and press \[Repack\]. As always, make sure you fill out every field before pressing \[Repack\].
 
 ![noesisexport](gh/rtab.png)
 
-The resulting .pap file can be imported into FFXIV through TexTools by using the raw file operations (leaving Decompressed Type 2 Data checked), or by placing it in the right place in penumbra.
+### Getting your edited animation back into FFXIV
+The resulting .pap file can be imported into FFXIV through TexTools by using the raw file operations (Tools > Raw File Operations > Import Raw File), leaving Decompressed Type 2 Data checked, or by placing it in the right place in penumbra.
+
+The destination you will be importing your .pap into will generally be the same as the location you extracted it from. Include the file name and extension, and make sure you use forward slashes ("/") when entering your destination path.
+
+For the Fatter Cat, in TexTools you would enter `chara/monster/m0512/animation/a0001/bt_common/resident/mount.pap` as the destination, then press \[Import File\] to select your new .pap file. It doesn't matter what your new .pap file is named, as long as it is imported to the right place.
+
+If the game loads the animation fine, it's successful! If it crashes or otherwise, something probably went wrong, either while editing the animation or within AnimAssist.
 
 # (Optional) Command Line Usage
 This project maintains the command line functionality of AnimAssist, both within animassist.exe and MultiAssist.exe. Using command line arguments will not initialize the GUI and at this point probably has better error reporting than the GUI. Here's a basic rundown of the commands, refer to the above Usage for further information.
@@ -203,6 +211,7 @@ Futhermore, you can use the original AnimAssist commands with `aextract` and `ap
 ### Repackaging
 In short, the files end up as the XML export format discussed in the final step of extraction. From this, the animation and binding of the modded animation replace the animation and binding of the user inputted animation index. The merged XML is passed back to animassist.exe where it is converted into a binary tagfile. The header is regenerated with new offsets and the timeline data is copied from the original .pap into the new export.
 
+Using 
 
 # Future development plans for MultiAssist
 I hope to continue supporting this project. In the near future I will improve input validation and error reporting within the GUI. Additionally, I am looking for ways to further streamline the process in the more distant future, such exporting directly to penumbra. Less generally, I believe direct animation swapping and features of a similar vein are also within the scope of this project.
