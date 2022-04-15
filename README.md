@@ -8,6 +8,22 @@ I started this fork so I had a quick way to extract some animation data from XIV
 
 Essentially everything good in this project comes from Perchbird's work, everything bad in this project is probably by me. 
 
+
+# Table of Contents
+- [Pre-requisites](#pre-requisites)
+    + [Required software](#required-software)
+    + [Recommended software](#recommended-software)
+    + [Optional Software](#optional-software)
+- [Installation and Usage](#installation-and-usage)
+  * [Installation](#installation)
+  * [Extracting an animation](#extracting-an-animation)
+  * [Editing your exported animation](#editing-your-exported-animation)
+  * [Repacking your edited animation](#repacking-your-edited-animation)
+- [Command Line Usage](#optional-command-line-usage)
+- [Technical rundown of the process](#technical-rundown-of-the-process)
+- [Future development plans for MultiAssist](#future-development-plans-for-multiassist)
+- [Building, contributions, and notes](#building-contributions-notes)
+
 # Pre-requisites
 ### Required software
 * The latest release in [Releases](https://github.com/ilmheg/MultiAssist/releases) (or your own build of the project).
@@ -46,7 +62,7 @@ Essentially everything good in this project comes from Perchbird's work, everyth
 # Installation and Usage
 *(NOTE: UX, input validation and error reporting within the GUI is quite poor within the current release! Please follow these instructions carefully and with this in mind. For now, a command window should open alongside the MultiAssist executable which should provide insight into any errors you run into, as well as a way to track the progress of any operations you perform.)*
 ## Installation
-To install MultiAssist, head to (Releases)[https://github.com/ilmheg/MultiAssist/releases] and download the latest MultiAssist.zip. Extract the files to an accessible location and run MultiAssist.exe to use the GUI. Do not remove any of the extracted files in this folder.
+To install MultiAssist, head to [Releases](https://github.com/ilmheg/MultiAssist/releases) and download the latest MultiAssist.zip. Extract the files to an accessible location and run MultiAssist.exe to use the GUI. Do not remove any of the extracted files in this folder.
 
 The MultiAssist GUI might open under the terminal window. 
 
@@ -84,15 +100,15 @@ For a quick reference on the different human folders, take a look at this table.
 | Viera M           | chara/human/c1701/   |
 | Viera F           | chara/human/c1801/   |
 
-Animation files always have the `.pap` extension. It can sometimes be difficult to determine which skeleton an animation uses. MultiAssist will warn you if there is a mismatch between the skeleton and the skeleton the animation file was built with. .pap files will usually be nested within an  `/animation/` folder. Emotes will generally further be within a `bt_common` folder, for example `chara/human/c0101/animation/bt_common/emote` for most Male Hyur emotes.
+Animation files always have the `.pap` extension. It can sometimes be difficult to determine which skeleton an animation uses. MultiAssist will warn you if there is a mismatch between the skeleton and the skeleton the animation file was built with. Animation files will usually be nested within an  `/animation/` folder. Emotes will generally further be within a `bt_common` folder, for example `chara/human/c0101/animation/bt_common/emote` for most Male Hyur emotes.
 
-Finding non-human files is broader topic, however, searching for a mount/minion/etc. in TextTools will provide you with an id within its material/model paths that should provide sufficient information.
+Finding non-human files is broader topic, however, searching for a mount/minion/etc. in TextTools will provide you with an id within its material/model paths that should provide sufficient information. If Fatter Cat's material path is `chara/monster/m0512/obj/body/b0001/texture/v01_m0512b0001_d.tex` you would knonw Fatter Cat related files will be under `chara/monster/m0512/`, for example.
 
-For this demonstration, I will be exporting the Fatter Cat mount skeleton and animation file. The basic animations for a mount are stored within a `mount.pap`. To do grab this file, navigate to and select `chara/monster/m0512/animation/a0001/bt_common/resident/mount.pap` in FFXIV explorer. With it selected, select File > Extract Raw (Or press Ctrl+Shift+E) and select your save directory. It is essential that you extract this file as a raw file.
+For this demonstration, I will be exporting the Fatter Cat skeleton and animation file. The basic animations for a mount are stored within a `mount.pap`. To grab this file, navigate to and select `chara/monster/m0512/animation/a0001/bt_common/resident/mount.pap` in FFXIV explorer. With it selected, select File > Extract Raw (Or press Ctrl+Shift+E) and select your save directory. It is essential that you extract this file as a raw file.
 
 The skeleton for Fatter Cat is listed under `chara/monster/m0512/skeleton/base/b0001/skl_m0512b0001.sklb`. We just need the .sklb file, so select it and extract the raw file again.
 
-With both the skeleton file and .pap animation file extracted we can move to MultiAssist. You may wish to move the files to a more convenient location. Note that the .pap and .sklb files will be nested within the same folder layout as described in FFXIV Explorer after extracting.
+With both the . sklb skeleton file and .pap animation file extracted we can move to MultiAssist. You may wish to move the files to a more convenient location. Note that the .pap and .sklb files will be nested within the same folder layout as described in FFXIV Explorer after extracting.
 
 
 ### Exporting editable animation files with MultiAssist
