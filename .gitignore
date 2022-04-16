@@ -36,3 +36,5 @@ cmake-*/
 build/
 __pycache__/
 release/
+
+*.ini

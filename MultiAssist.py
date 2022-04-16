@@ -1,5 +1,3 @@
-from sqlite3 import DateFromTicks
-from unicodedata import name
 from bs4 import BeautifulSoup
 import argparse
 import struct
@@ -10,6 +8,8 @@ import sys
 import dearpygui.dearpygui as dpg
 import warnings
 import re
+import webbrowser
+import configparser
 warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
 
 gui = 0
@@ -426,7 +426,7 @@ def get_remapped_xml(skl_xml: str, skl_anim_xml: str) -> list:
 
 def merge_xml(pap_xml: str, mod_xml: str, anim_index: int) -> str:
     # I'll probably move this to animassist.exe in the future
-    # For the moment, handled correctly, this absolutely localize change within the havok data to the animation/binding you've swapped. 
+    # For the moment, handled correctly, this absolutely localizes change within the havok data to the animation/binding you've swapped. 
     # Other than the Havok version data, this should be functionally identical to the original .pap, except for the modded area, of course.
     # It's also just the first method I thought of when trying to multi-pack.
     orig_soup = BeautifulSoup(pap_xml, features="html.parser")
@@ -551,8 +551,13 @@ def get_havok_from_pap(pap_data):
 
 class GUI:
     def __init__(self) -> None:
+        self.config = configparser.ConfigParser()
+        self._config()
         self.anims=[]
         self.reanims=[]
+        
+        self._run()
+        
 
     def start_loading(self):
         dpg.configure_item("loading_export", show=True)
@@ -580,6 +585,31 @@ class GUI:
         width = dpg.get_item_width(modal_id)
         height = dpg.get_item_height(modal_id)
         dpg.set_item_pos(modal_id, [viewport_width // 2 - width // 2, viewport_height // 2 - height // 2])
+
+    def _config(self):
+        if not os.path.exists('config.ini'):
+            self.config['SETTINGS'] = {'export_iteration': 'false', 'export_location': os.path.abspath(os.curdir)}
+
+            self.config.write(open('config.ini', 'w'))
+
+    def _get_config(self, section, key, bool=False):
+        self.config.read('config.ini')
+        try:
+            if bool: return self.config.getboolean(section, key)
+            return self.config.get(section, key)
+        except configparser.NoOptionError or configparser.NoSectionError:
+            # TODO: prompt user to regenerate config
+            if bool: return False
+            return ""
+
+    def _save_settings(self):
+        self.config.set('SETTINGS','export_iteration', str(not dpg.get_value("settings_export_iteration")))
+        self.config.set('SETTINGS','export_location', str(dpg.get_value("settings_export_location")))
+        self.config.write(open('config.ini', 'w'))
+        
+        
+
+            
 
     def _file_handler(self, sender, app_data, user_data):
         dpg.set_value(user_data, app_data['file_path_name'])
@@ -650,7 +680,7 @@ class GUI:
                 dpg.add_text("Select .pap:")
                 with dpg.group(horizontal=True):
                     #dpg.add_text("None selected", tag="selected_pap_status")
-                    dpg.add_input_text(label="", tag="selected_pap", callback=self._clear_anims, user_data={"output":"anim_list"})
+                    dpg.add_input_text(tag="selected_pap", callback=self._clear_anims, user_data={"output":"anim_list"})
                     dpg.add_button(label="...", callback=lambda: dpg.show_item("anim_dialog"))
                 dpg.add_text("Select .sklb:")
                 with dpg.group(horizontal=True):
@@ -676,7 +706,7 @@ class GUI:
                     dpg.add_text(".fbx", tag="extension")
                 dpg.add_text("Export directory: ")
                 with dpg.group(horizontal=True):
-                    dpg.add_input_text(label="", tag="export_directory")
+                    dpg.add_input_text(label="", tag="export_directory", default_value=self._get_config('SETTINGS', 'export_location'))
                     dpg.add_button(label="...", callback=lambda: dpg.show_item("dir_dialog"))
                 with dpg.group(horizontal=True):
                     dpg.add_button(label="Export", callback=self._export_callback) 
@@ -692,6 +722,13 @@ class GUI:
             if(gui!=0):
                 gui.show_info("Success!","You can find your exported file at:\n" + path)
 
+    def _file_iteration(self, path):
+        split = os.path.splitext(path)
+        file_count = 2
+        while os.path.exists(split[0]+"_("+str(file_count)+")"+split[1]):
+            file_count+=1
+        return split[0]+"_("+str(file_count)+")"+split[1]
+
     def _export_callback(self, sender, app_data):
         if not os.path.exists(dpg.get_value("selected_pap")) or not os.path.exists(dpg.get_value("selected_sklb")):
             self.show_info("Error","One or more of the files selected does not exist.")
@@ -703,9 +740,12 @@ class GUI:
         self.start_loading()
         try:
             path = dpg.get_value("export_directory")+"\\"+dpg.get_value("name")+dpg.get_value("extension")
+            if os.path.exists(path) and self._get_config('SETTINGS', 'export_iteration', True):
+                path = self._file_iteration(path)
             export(dpg.get_value("selected_sklb"), dpg.get_value("selected_pap"), self.anims.index(dpg.get_value("anim_list")), path,self._get_ft() )
             self._success_check(path)
-        except:
+        except Exception as e:
+            print(e)
             self.show_info("Error", "An error occurred within the extraction process. No file was written.")
         self.stop_loading()
          
@@ -720,6 +760,8 @@ class GUI:
         self.start_loading()
         try:
             path = dpg.get_value("reexport_directory")+"\\"+dpg.get_value("rename")+".pap"
+            if os.path.exists(path) and self._get_config('SETTINGS', 'export_iteration', True):
+                path = self._file_iteration(path)
             multi_repack( dpg.get_value("selected_resklb"),dpg.get_value("selected_repap"),dpg.get_value("selected_fbx"), self.reanims.index(dpg.get_value("reanim_list")), path)
             self._success_check(path)
         except:
@@ -755,7 +797,7 @@ class GUI:
                     dpg.add_text(".pap")
                 dpg.add_text("Export directory: ")
                 with dpg.group(horizontal=True):
-                    dpg.add_input_text(label="", tag="reexport_directory")
+                    dpg.add_input_text(label="", tag="reexport_directory", default_value=self._get_config('SETTINGS', 'export_location'))
                     dpg.add_button(label="...", callback=lambda: dpg.show_item("redir_dialog"))
                 with dpg.group(horizontal=True):
                     dpg.add_button(label="Repack", callback=self._repack_callback)
@@ -807,7 +849,7 @@ class GUI:
 
         dpg.bind_theme(global_theme)
 
-    def run(self):
+    def _run(self):
         dpg.create_context()
 
         # surely there's a better way to make these dialogs lol
@@ -831,9 +873,19 @@ class GUI:
         dpg.add_file_dialog(directory_selector=True, show=False, tag="dir_dialog", modal=True, height=300, callback=lambda a, b:dpg.set_value("export_directory", b['file_path_name']))
         dpg.add_file_dialog(directory_selector=True, show=False, tag="redir_dialog", modal=True, height=300, callback=lambda a, b:dpg.set_value("reexport_directory", b['file_path_name']))
 
-
+        
         with dpg.window(tag="Primary Window"):
+            with dpg.menu_bar():
+                with dpg.menu(label="Settings"):
+                    dpg.add_checkbox(label="Overwrite export if file exists", default_value= not self._get_config('SETTINGS','export_iteration', True), tag="settings_export_iteration")
+                    dpg.add_text("\nDefault export directory:")
+                    dpg.add_input_text(default_value=self._get_config('SETTINGS','export_location'), tag="settings_export_location")
+                        
+                    dpg.add_button(label="Save settings", callback=lambda:self._save_settings())
+
+                dpg.add_menu_item(label="Help", callback=lambda:webbrowser.open('https://github.com/ilmheg/MultiAssist/blob/main/README.md'))
             dpg.add_text("MultiAssist")
+            
             with dpg.tab_bar(label='tabbar'):  
                 with dpg.tab(label='Extract'):  
                     self._export_window()
@@ -842,7 +894,7 @@ class GUI:
 
         self._set_theme()
 
-        dpg.create_viewport(title='MultiAssist', width=650, height=510)
+        dpg.create_viewport(title='MultiAssist', width=650, height=520, min_width=500,min_height=520)
         #dpg.set_viewport_large_icon("icon/icon_large.ico")
         #dpg.set_viewport_small_icon("icon/icon_large.ico")
 
@@ -871,7 +923,6 @@ def main():
     else:
         global gui
         gui = GUI()
-        gui.run()
 
 
 if __name__ == "__main__":
