@@ -263,14 +263,6 @@ def export(skeleton_path, pap_path, anim_index, output_path, file_type):
                 assist_combine_tag(tmp_skel_path, tmp_anim_path, str(anim_index), output_path)
             elif (file_type=="xml"):
                 assist_xml(tmp_skel_path, tmp_anim_path, output_path)
-            if not os.path.exists(output_path):
-                dbgprint("no file was written")
-                if(gui!=0):
-                    gui.show_info("Error!","No file was written, something went wrong.")
-            else:
-                dbgprint(f"Saved to {output_path}")
-                if(gui!=0):
-                    gui.show_info("Success!","You can find your exported file in " + output_path)
 
 def xml_snipper():
     # Standalone way to snip XML
@@ -381,15 +373,6 @@ def multi_repack(skeleton_file : str, anim_file : str, mod_file : str, anim_inde
         else:
              mod_xml_str = new_xml
         merged_xml = merge_xml(pap_xml_str, mod_xml_str, int(anim_index))
-        
-        with open(out_path+"M.xml", 'w') as om:
-            om.write(merged_xml)
-        
-        with open(out_path+"MX.xml", 'w') as ox:
-            ox.write(mod_xml_str)
-
-        with open(out_path+"PX.xml", 'w') as op:
-            op.write(pap_xml_str)
 
         with open(tmp_out_xml_path, "w") as fd:
             fd.write(merged_xml)
@@ -416,14 +399,7 @@ def multi_repack(skeleton_file : str, anim_file : str, mod_file : str, anim_inde
                 out.write(new_havok)
                 out.write(post_havok)
             print(f"Wrote new pap to {out_path}!")
-        if not os.path.exists(out_path):
-                dbgprint("No file was written")
-                if(gui!=0):
-                    gui.show_info("Error!","No file was written, something went wrong.")
-        else:
-            dbgprint(f"Saved to {out_path}")
-            if(gui!=0):
-                gui.show_info("Success!","You can find your exported file in " + out_path)
+        
           
 def get_remapped_xml(skl_xml: str, skl_anim_xml: str) -> list:
     sk_soup = BeautifulSoup(skl_xml, features="html.parser")
@@ -575,18 +551,20 @@ def get_havok_from_pap(pap_data):
 
 class GUI:
     def __init__(self) -> None:
-        anims=[]
-        reanims=[]
+        self.anims=[]
+        self.reanims=[]
 
     def start_loading(self):
-        self._working_window()
+        dpg.configure_item("loading_export", show=True)
+        dpg.configure_item("loading_repack", show=True)
         return
     
     def stop_loading(self):
+        dpg.configure_item("loading_export", show=False)
+        dpg.configure_item("loading_repack", show=False)
         return
 
     def show_info(self, title, message):
-        
         # guarantee these commands happen in the same frame
         with dpg.mutex():
 
@@ -604,11 +582,7 @@ class GUI:
         dpg.set_item_pos(modal_id, [viewport_width // 2 - width // 2, viewport_height // 2 - height // 2])
 
     def _file_handler(self, sender, app_data, user_data):
-        
-        #dpg.set_value(user_data+"_status", "Selected: ")
-
         dpg.set_value(user_data, app_data['file_path_name'])
-        return
 
     def _populate_anims(self, sender, app_data, user_data):
         if dpg.get_value(user_data['pap_input']) == "" or dpg.get_value(user_data['sklb_input']) == "":
@@ -636,25 +610,19 @@ class GUI:
         if(user_data['output'] == "reanim_list"):
             self.reanims = a
 
+    def _clear_anims(self, sender, app_data, user_data):
+        if(user_data['output'] == []):
+            if(self.anims == []): return
+        if(user_data['output'] == "reanim_list"):
+            if(self.reanims == []): return
+
+        dpg.configure_item(user_data['output'], default_value=0)
+        dpg.configure_item(user_data['output'], items=[])
+        if(user_data['output'] == "anim_list"):
+            self.anims = []
+        if(user_data['output'] == "reanim_list"):
+            self.reanims = []
         return
-
-    #WIP plan responsiveness ig
-    def _working_window(self):
-        # guarantee these commands happen in the same frame
-        with dpg.mutex():
-
-            viewport_width = dpg.get_viewport_client_width()
-            viewport_height = dpg.get_viewport_client_height()
-
-            with dpg.window(label="Processing...", modal=True, no_close=True, tag="loading") as modal_id:
-                dpg.add_text("The operation is ongoing")
-                dpg.add_button(label="Ok", width=75, user_data=(modal_id, True), callback=lambda:dpg.delete_item(modal_id))
-
-        # guarantee these commands happen in another frame
-        dpg.split_frame()
-        width = viewport_width
-        height = dpg.get_item_height(modal_id)
-        dpg.set_item_pos(modal_id, [viewport_width // 2 - width // 2, viewport_height // 2 - height // 2])
 
     def _get_ft(self):
         # kinda dislike this
@@ -676,13 +644,13 @@ class GUI:
             if dpg.get_value("selected_pap") != "": dpg.set_value("selected_repap", dpg.get_value("selected_pap"))
             if dpg.get_value("selected_sklb") != "": dpg.set_value("selected_resklb", dpg.get_value("selected_sklb"))
 
-    def _extract_window(self):
+    def _export_window(self):
         with dpg.child_window(autosize_x=True, height=200):
             with dpg.group():
                 dpg.add_text("Select .pap:")
                 with dpg.group(horizontal=True):
                     #dpg.add_text("None selected", tag="selected_pap_status")
-                    dpg.add_input_text(label="", tag="selected_pap")
+                    dpg.add_input_text(label="", tag="selected_pap", callback=self._clear_anims, user_data={"output":"anim_list"})
                     dpg.add_button(label="...", callback=lambda: dpg.show_item("anim_dialog"))
                 dpg.add_text("Select .sklb:")
                 with dpg.group(horizontal=True):
@@ -710,39 +678,66 @@ class GUI:
                 with dpg.group(horizontal=True):
                     dpg.add_input_text(label="", tag="export_directory")
                     dpg.add_button(label="...", callback=lambda: dpg.show_item("dir_dialog"))
-                dpg.add_button(label="Export", callback=self._export_callback) 
+                with dpg.group(horizontal=True):
+                    dpg.add_button(label="Export", callback=self._export_callback) 
+                    dpg.add_loading_indicator(color=(169, 127, 156),secondary_color=(66, 49, 61),style=1, radius=1.2, show=False, tag="loading_export")
+    
+    def _success_check(self, path):
+        if not os.path.exists(path):
+                dbgprint("No file was written")
+                if(gui!=0):
+                    gui.show_info("Error!","No file was written, something went wrong.")
+        else:
+            dbgprint(f"Saved to {path}")
+            if(gui!=0):
+                gui.show_info("Success!","You can find your exported file at:\n" + path)
 
     def _export_callback(self, sender, app_data):
         if not os.path.exists(dpg.get_value("selected_pap")) or not os.path.exists(dpg.get_value("selected_sklb")):
             self.show_info("Error","One or more of the files selected does not exist.")
             return
-        export(dpg.get_value("selected_sklb"), dpg.get_value("selected_pap"), self.anims.index(dpg.get_value("anim_list")), dpg.get_value("export_directory")+"\\"+dpg.get_value("name")+dpg.get_value("extension"),self._get_ft() )
+        if self.anims == []:
+            self.show_info("Error","No animation selected. Did you press [Submit]?")
+            return
         
-    
+        self.start_loading()
+        try:
+            path = dpg.get_value("export_directory")+"\\"+dpg.get_value("name")+dpg.get_value("extension")
+            export(dpg.get_value("selected_sklb"), dpg.get_value("selected_pap"), self.anims.index(dpg.get_value("anim_list")), path,self._get_ft() )
+            self._success_check(path)
+        except:
+            self.show_info("Error", "An error occurred within the extraction process. No file was written.")
+        self.stop_loading()
+         
     def _repack_callback(self, sender, app_data):
         if not os.path.exists(dpg.get_value("selected_repap")) or not os.path.exists(dpg.get_value("selected_resklb"))  or not os.path.exists(dpg.get_value("selected_fbx")):
             self.show_info("Error","One or more of the files selected does not exist.")
             return
-        multi_repack( dpg.get_value("selected_resklb"),dpg.get_value("selected_repap"),dpg.get_value("selected_fbx"), self.reanims.index(dpg.get_value("reanim_list")), dpg.get_value("reexport_directory")+"\\"+dpg.get_value("rename")+".pap")
+        if self.reanims == []:
+            self.show_info("Error","No animation selected. Did you press [Submit]?")
+            return
         
+        self.start_loading()
+        try:
+            path = dpg.get_value("reexport_directory")+"\\"+dpg.get_value("rename")+".pap"
+            multi_repack( dpg.get_value("selected_resklb"),dpg.get_value("selected_repap"),dpg.get_value("selected_fbx"), self.reanims.index(dpg.get_value("reanim_list")), path)
+            self._success_check(path)
+        except:
+            self.show_info("Error", "An error occurred within the extraction process. No file was written.")
+        self.stop_loading()
+
     def _repack_window(self):
         with dpg.child_window(autosize_x=True, height=200):
-            #with dpg.group(horizontal=True):
-            #    dpg.add_text("Method: ")
-            #    dpg.add_combo(["Multi Pap", "Original AnimAssist (No multi-animation repacking, .hkx only)"])
             dpg.add_text("Select .pap:")
             with dpg.group(horizontal=True):
-                #dpg.add_text("None selected", tag="selected_repap_status")
-                dpg.add_input_text(label="", tag="selected_repap")
+                dpg.add_input_text(label="", tag="selected_repap", callback=self._clear_anims, user_data={"output":"reanim_list"})
                 dpg.add_button(label="...", callback=lambda: dpg.show_item("reanim_dialog"))
             dpg.add_text("Select .sklb:")
             with dpg.group(horizontal=True):
-                #dpg.add_text("None selected", tag="selected_resklb_status")
                 dpg.add_input_text(label="", tag="selected_resklb")
                 dpg.add_button(label="...", callback=lambda: dpg.show_item("resklb_dialog"))
             dpg.add_text("Select .fbx or HavokMax .hka/.hkx/.hkt:")
             with dpg.group(horizontal=True):
-                #dpg.add_text("None selected", tag="selected_fbx_status")
                 dpg.add_input_text(label="", tag="selected_fbx")
                 dpg.add_button(label="...", callback=lambda: dpg.show_item("fbx_dialog"))
             with dpg.group(horizontal=True):
@@ -762,7 +757,9 @@ class GUI:
                 with dpg.group(horizontal=True):
                     dpg.add_input_text(label="", tag="reexport_directory")
                     dpg.add_button(label="...", callback=lambda: dpg.show_item("redir_dialog"))
-                dpg.add_button(label="Repack", callback=self._repack_callback)
+                with dpg.group(horizontal=True):
+                    dpg.add_button(label="Repack", callback=self._repack_callback)
+                    dpg.add_loading_indicator(color=(169, 127, 156),secondary_color=(66, 49, 61),style=1, radius=1.2, show=False, tag="loading_repack")
 
     def _set_theme(self):
         accent_light = (239, 179, 221)
@@ -810,8 +807,6 @@ class GUI:
 
         dpg.bind_theme(global_theme)
 
-        dpg.show_style_editor()
-
     def run(self):
         dpg.create_context()
 
@@ -841,15 +836,15 @@ class GUI:
             dpg.add_text("MultiAssist")
             with dpg.tab_bar(label='tabbar'):  
                 with dpg.tab(label='Extract'):  
-                    self._extract_window()
+                    self._export_window()
                 with dpg.tab(label='Repack'):   
                     self._repack_window()
 
         self._set_theme()
 
         dpg.create_viewport(title='MultiAssist', width=650, height=510)
-        dpg.set_viewport_large_icon("icon/icon_large.ico")
-        dpg.set_viewport_small_icon("icon/icon_large.ico")
+        #dpg.set_viewport_large_icon("icon/icon_large.ico")
+        #dpg.set_viewport_small_icon("icon/icon_large.ico")
 
         dpg.setup_dearpygui()
         dpg.show_viewport()
