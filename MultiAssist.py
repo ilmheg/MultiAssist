@@ -548,6 +548,51 @@ def get_havok_from_pap(pap_data):
 
     return new_data
 
+def read_timeline(tmb_data):
+    # 4 bytes TMLB
+    # UInt size
+    # UInt entries 
+
+    # 4 bytes TMDH
+    # UInt unk
+    # UShort ID
+    # UShort unk
+    # UShort unk
+    # UShort unk
+
+    # 4 bytes TMAL OR TMPP
+    # if PP:
+    #   UInt unk
+    #   UInt offset
+    #   4 bytes TMAL
+    # UInt unk
+    # UInt offset
+    # UInt number of TMAC
+
+    # TMAC
+    # UInt unk
+    # UShort ID
+    # UShort Time
+    # UInt Unk
+    # UInt Unk
+    # UInt offset
+    # UInt number of TMTR
+
+    # TMTR
+    # UInt size
+    # UShort ID
+    # UShort Time
+    # UInt Offset
+    # Count of CXXX per track
+    # UInt Unk offset
+    #   unk reaper stuff
+
+    # CXXX
+    # Depends on XXX /pdead
+
+    # name of animation:
+    #   name of expression 
+    return
 
 class GUI:
     def __init__(self) -> None:
@@ -558,7 +603,6 @@ class GUI:
         
         self._run()
         
-
     def start_loading(self):
         dpg.configure_item("loading_export", show=True)
         dpg.configure_item("loading_repack", show=True)
@@ -605,11 +649,7 @@ class GUI:
     def _save_settings(self):
         self.config.set('SETTINGS','export_iteration', str(not dpg.get_value("settings_export_iteration")))
         self.config.set('SETTINGS','export_location', str(dpg.get_value("settings_export_location")))
-        self.config.write(open('config.ini', 'w'))
-        
-        
-
-            
+        self.config.write(open('config.ini', 'w'))          
 
     def _file_handler(self, sender, app_data, user_data):
         dpg.set_value(user_data, app_data['file_path_name'])
@@ -628,7 +668,7 @@ class GUI:
         num_anims = len(pap_hdr["anim_infos"])
 
         if(sklb_hdr['skele_id']!=pap_hdr['skele_id']):
-            gui.show_info("Warning!", "The Skeleton ID ("+str(sklb_hdr['skele_id'])+") does not match the Skeleton ID in the .pap ("+ str(pap_hdr['skele_id']) +")\n\nAre you sure you are importing the right files?")
+            self.show_info("Warning!", "The Skeleton ID ("+str(sklb_hdr['skele_id'])+") does not match the Skeleton ID in the .pap ("+ str(pap_hdr['skele_id']) +")\n\nAre you sure you are importing the right files?")
 
         a = []
         for i in range(num_anims):
@@ -714,13 +754,11 @@ class GUI:
     
     def _success_check(self, path):
         if not os.path.exists(path):
-                dbgprint("No file was written")
-                if(gui!=0):
-                    gui.show_info("Error!","No file was written, something went wrong.")
+            dbgprint("No file was written")
+            self.show_info("Error!","No file was written, something went wrong.")
         else:
             dbgprint(f"Saved to {path}")
-            if(gui!=0):
-                gui.show_info("Success!","You can find your exported file at:\n" + path)
+            self.show_info("Success!","You can find your exported file at:\n" + path)
 
     def _file_iteration(self, path):
         split = os.path.splitext(path)
@@ -772,15 +810,15 @@ class GUI:
         with dpg.child_window(autosize_x=True, height=200):
             dpg.add_text("Select .pap:")
             with dpg.group(horizontal=True):
-                dpg.add_input_text(label="", tag="selected_repap", callback=self._clear_anims, user_data={"output":"reanim_list"})
+                dpg.add_input_text(tag="selected_repap", callback=self._clear_anims, user_data={"output":"reanim_list"})
                 dpg.add_button(label="...", callback=lambda: dpg.show_item("reanim_dialog"))
             dpg.add_text("Select .sklb:")
             with dpg.group(horizontal=True):
-                dpg.add_input_text(label="", tag="selected_resklb")
+                dpg.add_input_text(tag="selected_resklb")
                 dpg.add_button(label="...", callback=lambda: dpg.show_item("resklb_dialog"))
             dpg.add_text("Select .fbx or HavokMax .hka/.hkx/.hkt:")
             with dpg.group(horizontal=True):
-                dpg.add_input_text(label="", tag="selected_fbx")
+                dpg.add_input_text(tag="selected_fbx")
                 dpg.add_button(label="...", callback=lambda: dpg.show_item("fbx_dialog"))
             with dpg.group(horizontal=True):
                 dpg.add_button(label="Submit", callback=self._populate_anims, user_data={"output" : "reanim_list", "pap_input":"selected_repap", "sklb_input":"selected_resklb"})
@@ -802,6 +840,11 @@ class GUI:
                 with dpg.group(horizontal=True):
                     dpg.add_button(label="Repack", callback=self._repack_callback)
                     dpg.add_loading_indicator(color=(169, 127, 156),secondary_color=(66, 49, 61),style=1, radius=1.2, show=False, tag="loading_repack")
+
+    def _pap_editor_window(self):
+        with dpg.child_window(autosize_x=True, height=95):
+            dpg.add_text("Warning! This feature is in its early stages and may not work as intended.\nWarning! This feature only supports .pap files with a single animation.", color=(255,0,0))
+            dpg.add_text("The Timeline Editor assists with editing the \"header\" and \"timeline\" sections of .pap files, which contains information such as when and what expressions are played.",wrap=500)
 
     def _set_theme(self):
         accent_light = (239, 179, 221)
@@ -848,7 +891,7 @@ class GUI:
                 dpg.add_theme_style(dpg.mvStyleVar_FrameRounding, 5, category=dpg.mvThemeCat_Core)
 
         dpg.bind_theme(global_theme)
-
+        
     def _run(self):
         dpg.create_context()
 
@@ -891,6 +934,9 @@ class GUI:
                     self._export_window()
                 with dpg.tab(label='Repack'):   
                     self._repack_window()
+                with dpg.tab(label='Timeline Editor'): 
+                    self._pap_editor_window()  
+                    
 
         self._set_theme()
 

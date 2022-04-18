@@ -36,5 +36,7 @@ cmake-*/
 build/
 __pycache__/
 release/
+dist/
 
 *.ini
+*.pap

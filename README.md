@@ -10,7 +10,7 @@ Essentially everything good in this project comes from Perchbird's work, everyth
 
 
 # Table of Contents
-- [Prerequisites](#pre-requisites)
+- [Prerequisites](#prerequisites)
     + [Required software](#required-software)
     + [Recommended software](#recommended-software)
     + [Optional Software](#optional-software)
@@ -64,6 +64,8 @@ Essentially everything good in this project comes from Perchbird's work, everyth
 *(NOTE: UX, input validation and error reporting within the GUI is quite poor within the current release! Please follow these instructions carefully and with this in mind. For now, a command window should open alongside the MultiAssist executable which should provide insight into any errors you run into, as well as a way to track the progress of any operations you perform.)*
 ## Installation
 To install MultiAssist, head to [Releases](https://github.com/ilmheg/MultiAssist/releases) and download the latest MultiAssist.zip. Extract the files to an accessible location and run MultiAssist.exe to use the GUI. Do not remove any of the extracted files in this folder.
+
+Make sure you have looked at the [Required software](#required-software) and have installed VC++2012 32-bit Redist.
 
 The MultiAssist GUI might open under the terminal window. 
 
