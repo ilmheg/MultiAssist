@@ -815,7 +815,6 @@ class GUI:
 
     def _repack_window(self):
         with dpg.child_window(autosize_x=True, height=200):
-            dpg.add_button(small=True, label="Blender user? Check out 0ceal0t's BlenderAssist for an easier time repacking.", callback=lambda:webbrowser.open('https://github.com/0ceal0t/BlenderAssist'))
             dpg.add_text("Select .pap:")
             with dpg.group(horizontal=True):
                 dpg.add_input_text(tag="selected_repap", callback=self._clear_anims, user_data={"output":"reanim_list"})
@@ -943,7 +942,9 @@ class GUI:
                     dpg.add_button(label="Save settings", callback=lambda:self._save_settings())
 
                 dpg.add_menu_item(label="Help", callback=lambda:webbrowser.open('https://github.com/ilmheg/MultiAssist/blob/main/README.md'))
-            dpg.add_text("MultiAssist")
+            with dpg.group(horizontal=True):
+                dpg.add_text("MultiAssist")
+                dpg.add_button(small=True, label="Blender user? Check out 0ceal0t's BlenderAssist!", callback=lambda:webbrowser.open('https://github.com/0ceal0t/BlenderAssist'))
             
             with dpg.tab_bar(label='tabbar'):  
                 with dpg.tab(label='Extract'):  
