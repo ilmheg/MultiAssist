@@ -8,7 +8,7 @@ I started this fork so I had a quick way to extract some animation data from XIV
 
 Essentially everything good in this project comes from Perchbird's work, everything bad in this project is probably by me. 
 
-Using **Blender**? Consider checking out [0ceal0t's BlenderAssist](https://github.com/0ceal0t/BlenderAssist)! Another tool that utilizes animassist and fbx2havok to achieve similar things to this project, in a Blender addon! You may want to use MultiAssist in conjunction with BlenderAssist if you are editing existing animations, otherwise BlenderAssist is simply better and cuts out a few steps.
+Using **Blender**? Consider checking out [0ceal0t's BlenderAssist](https://github.com/0ceal0t/BlenderAssist)! Another tool that utilizes animassist and fbx2havok to achieve similar things to this project, in a Blender addon! 
 
 # Table of Contents
 - [Prerequisites](#prerequisites)
