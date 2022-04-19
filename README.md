@@ -8,6 +8,7 @@ I started this fork so I had a quick way to extract some animation data from XIV
 
 Essentially everything good in this project comes from Perchbird's work, everything bad in this project is probably by me. 
 
+Using **Blender**? Consider checking out [0ceal0t's BlenderAssist](https://github.com/0ceal0t/BlenderAssist)! Another tool that utilizes animassist and fbx2havok to achieve similar things to this project, in a Blender addon! You may want to use MultiAssist in conjunction with BlenderAssist if you are editing existing animations, otherwise BlenderAssist is simply better and cuts out a few steps.
 
 # Table of Contents
 - [Prerequisites](#prerequisites)
@@ -59,6 +60,8 @@ Essentially everything good in this project comes from Perchbird's work, everyth
     * If you are using the .py, make sure to build or otherwise acquire the companion executables.
 * [Godbert](https://github.com/xivapi/SaintCoinach#godbert)
     * May be useful in assisting yourself in familiarizing yourself with the location of FFXIV animations, entirely optional.
+* [VFXEditor](https://github.com/0ceal0t/Dalamud-VFXEditor)
+    * Way to edit the timeline section of animation files, among many other things.
 
 # Installation and Usage
 *(NOTE: UX, input validation and error reporting within the GUI is quite poor within the current release! Please follow these instructions carefully and with this in mind. For now, a command window should open alongside the MultiAssist executable which should provide insight into any errors you run into, as well as a way to track the progress of any operations you perform.)*

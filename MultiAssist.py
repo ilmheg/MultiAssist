@@ -595,6 +595,8 @@ def read_timeline(tmb_data):
     return
 
 class GUI:
+    EXPORT_TYPES = ['.fbx (Requires Noesis conversion)', '.hkx packfile (HavokMax compatible)', '.hkx tagfile', '.xml']
+    EXPORT_EXT = ['.fbx', '.hkx', '.hkx', '.xml']
     def __init__(self) -> None:
         self.config = configparser.ConfigParser()
         self._config()
@@ -632,7 +634,7 @@ class GUI:
 
     def _config(self):
         if not os.path.exists('config.ini'):
-            self.config['SETTINGS'] = {'export_iteration': 'false', 'export_location': os.path.abspath(os.curdir)}
+            self.config['SETTINGS'] = {'export_iteration': 'false', 'export_location': os.path.abspath(os.curdir), 'export_type': '0'}
 
             self.config.write(open('config.ini', 'w'))
 
@@ -649,6 +651,7 @@ class GUI:
     def _save_settings(self):
         self.config.set('SETTINGS','export_iteration', str(not dpg.get_value("settings_export_iteration")))
         self.config.set('SETTINGS','export_location', str(dpg.get_value("settings_export_location")))
+        self.config.set('SETTINGS','export_type', str(self.EXPORT_TYPES.index(dpg.get_value("settings_export_type"))))
         self.config.write(open('config.ini', 'w'))          
 
     def _file_handler(self, sender, app_data, user_data):
@@ -697,13 +700,13 @@ class GUI:
     def _get_ft(self):
         # kinda dislike this
         x = dpg.get_value("extension_selector")
-        if (x == ".fbx (Requires Noesis conversion)"):
+        if (x == self.EXPORT_TYPES[0]):
             return "fbx"
-        if (x == ".hkx packfile (HavokMax compatible)"):
+        if (x == self.EXPORT_TYPES[1]):
             return "hkxp"
-        if (x == ".hkx tagfile"):
+        if (x == self.EXPORT_TYPES[2]):
             return "hkxt"
-        if (x == ".xml"):
+        if (x == self.EXPORT_TYPES[3]):
             return "xml"
 
     def _copy_tab(self, tab):
@@ -738,12 +741,16 @@ class GUI:
             with dpg.child_window(autosize_y=True, autosize_x=True, tag="export_window"):
                 dpg.add_text("Export Options")
                 dpg.add_text("Export as: ")
+                if self._get_config('SETTINGS','export_type') == "":
+                    e = self.EXPORT_TYPES[0]
+                else:
+                    e = self.EXPORT_TYPES[int(self._get_config('SETTINGS','export_type'))]
                 with dpg.group(horizontal=True):
-                    dpg.add_combo(items=[".fbx (Requires Noesis conversion)", ".hkx packfile (HavokMax compatible)", ".hkx tagfile", ".xml"], default_value=".fbx (Requires Noesis conversion)", tag="extension_selector", callback=lambda: dpg.set_value("extension", dpg.get_value("extension_selector")[0:4]))
+                    dpg.add_combo(items=self.EXPORT_TYPES, default_value=e, tag="extension_selector", callback=lambda: dpg.set_value("extension", dpg.get_value("extension_selector")[0:4]))
                 dpg.add_text("Name: ")
                 with dpg.group(horizontal=True):                    
                     dpg.add_input_text(tag="name")
-                    dpg.add_text(".fbx", tag="extension")
+                    dpg.add_text(self.EXPORT_EXT[int(self.EXPORT_TYPES.index(e))], tag="extension")
                 dpg.add_text("Export directory: ")
                 with dpg.group(horizontal=True):
                     dpg.add_input_text(label="", tag="export_directory", default_value=self._get_config('SETTINGS', 'export_location'))
@@ -808,6 +815,7 @@ class GUI:
 
     def _repack_window(self):
         with dpg.child_window(autosize_x=True, height=200):
+            dpg.add_button(small=True, label="Blender user? Check out 0ceal0t's BlenderAssist for an easier time repacking.", callback=lambda:webbrowser.open('https://github.com/0ceal0t/BlenderAssist'))
             dpg.add_text("Select .pap:")
             with dpg.group(horizontal=True):
                 dpg.add_input_text(tag="selected_repap", callback=self._clear_anims, user_data={"output":"reanim_list"})
@@ -920,7 +928,15 @@ class GUI:
         with dpg.window(tag="Primary Window"):
             with dpg.menu_bar():
                 with dpg.menu(label="Settings"):
+                    if self._get_config('SETTINGS','export_type') == "":
+                        export_type = self.EXPORT_TYPES[0]
+                    else:
+                        export_type = self.EXPORT_TYPES[int(self._get_config('SETTINGS','export_type'))]
+                        
                     dpg.add_checkbox(label="Overwrite export if file exists", default_value= not self._get_config('SETTINGS','export_iteration', True), tag="settings_export_iteration")
+                    dpg.add_text("\nDefault extract type:")
+                    
+                    dpg.add_combo(default_value=export_type , tag="settings_export_type", items=self.EXPORT_TYPES)
                     dpg.add_text("\nDefault export directory:")
                     dpg.add_input_text(default_value=self._get_config('SETTINGS','export_location'), tag="settings_export_location")
                         
@@ -934,9 +950,8 @@ class GUI:
                     self._export_window()
                 with dpg.tab(label='Repack'):   
                     self._repack_window()
-                with dpg.tab(label='Timeline Editor'): 
-                    self._pap_editor_window()  
-                    
+                # with dpg.tab(label='Timeline Editor'): 
+                #     self._pap_editor_window()  
 
         self._set_theme()
 

@@ -44,7 +44,8 @@ inline std::string convert_from_wstring(const std::wstring& wstr)
 // animassist.exe (2) in_edited_hk_xml out_anim_hkx
 // animassist.exe (3) in_skl_hkx in_anim_hkx anim_index out_merged_hkx
 // animassist.exe (4) in_anim_hkx out_anim_xml
-// animassist.exe (6) in_anim_packfile out_anmim_hkx
+// animassist.exe (5) in_anim_hkx out_anim_xml
+// animassist.exe (6) in_anim_packfile in_skl_hkx out_anim_hkx
 int main(int argc, const char** argv) {
 
     int nargc = 0;
@@ -76,6 +77,7 @@ int main(int argc, const char** argv) {
     // 3 = skl + anim -> out hk*
     // 4 = skl + anim -> xml packfile
     // 5 = xml packfile of anim -> binary tagfile
+    // 6 = skl + anim - > binary tagfile
     int mode = _wtoi(nargv[1]);
 
     if (mode == 1 || mode == 2) {
