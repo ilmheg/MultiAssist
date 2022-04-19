@@ -315,7 +315,8 @@ bool CreateScene(FbxManager *pSdkManager, FbxScene* pScene)
     sceneInfo->mRevision = "rev. 1.0";
     sceneInfo->mKeywords = "havok animation";
     sceneInfo->mComment = "no particular comments required.";
-
+    pScene->GetGlobalSettings().SetTimeMode(FbxTime::eCustom);
+    pScene->GetGlobalSettings().SetCustomFrameRate(30.0);
 	FbxAxisSystem directXAxisSys(FbxAxisSystem::EUpVector::eYAxis, FbxAxisSystem::EFrontVector::eParityEven, FbxAxisSystem::eRightHanded);
 	directXAxisSys.ConvertScene(pScene);
 

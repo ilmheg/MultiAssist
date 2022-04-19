@@ -42,13 +42,9 @@ Using **Blender**? Consider checking out [0ceal0t's BlenderAssist](https://githu
 ### Recommended software
 * [FFXIV Explorer (goat fork)](https://github.com/goaaats/ffxiv-explorer-fork)
     * Convenient way to browse and extract Skeleton and Animation files. Please use raw extraction (Ctrl+Shift+E) for MultiAssist purposes. Other methods of extractions, such as TexTools, will also work.
-* [Noesis](https://richwhitehouse.com/index.php?content=inc_projects.php&showproject=91)
-    * Use this to convert FBX file exported from MultiAssist to binary FBX files. Please use this converted FBX file when importing into 3D software, rather than the export directly from MultiAssist.
-    * Unconverted FBX files can still be imported into some 3D editors, however they will likely not import as expected.
-    * Consider FBX repacking to be in an unpolished state, I would appreciate oddities being reported, as testing this stuff is really monotonous.
-* (**Recommended if you have 3DS Max**) [HavokMax - 3DS Max plugin](https://github.com/PredatorCZ/HavokMax/)
+* (**Optional, 3DS Max only**) [HavokMax - 3DS Max plugin](https://github.com/PredatorCZ/HavokMax/)
     * HavokMax adds the functionality to import and export .hkx packfiles through 3DS max.
-    * You do not need this if you plan to edit .FBX files. If you wish to edit .FBX files, please refer to Noesis in the [Recommended Software](#recommended-software) section.
+    * You do not need this if you plan to edit .FBX files. 
 * A 3D editor
     * To edit the extracted animations.
     * I only tested with 3DS max. 
@@ -64,13 +60,10 @@ Using **Blender**? Consider checking out [0ceal0t's BlenderAssist](https://githu
     * Way to edit the timeline section of animation files, among many other things.
 
 # Installation and Usage
-*(NOTE: UX, input validation and error reporting within the GUI is quite poor within the current release! Please follow these instructions carefully and with this in mind. For now, a command window should open alongside the MultiAssist executable which should provide insight into any errors you run into, as well as a way to track the progress of any operations you perform.)*
 ## Installation
 To install MultiAssist, head to [Releases](https://github.com/ilmheg/MultiAssist/releases) and download the latest MultiAssist.zip. Extract the files to an accessible location and run MultiAssist.exe to use the GUI. Do not remove any of the extracted files in this folder.
 
 Make sure you have looked at the [Required software](#required-software) and have installed VC++2012 32-bit Redist.
-
-The MultiAssist GUI might open under the terminal window. 
 
 ## Extracting an animation
 
@@ -135,17 +128,11 @@ Please make sure you have everything correctly inputted before pressing \[Export
 #### ***NOTE ON FBX SUPPORT:*** 
 *fbx2havok is an older proof-of-concept project by Perchbird, provided mostly as is. This executable in this release is modified to output uncompressed animations, rather than the compressed animation of the original, it is otherwise the original project. **As far as I can tell, this is enough to prevent fbx2havok from being a glitchy mess.** I'm not confident things such as no. of frames are properly preserved, however. If something goes wrong, keep the unpolished nature of this in mind. I would like to see this method fleshed out, and thus am interested in any errors you encounter using this method.*
 
-To get started editing this FBX, we must first convert it into a binary .FBX file through [Noesis](https://richwhitehouse.com/index.php?content=inc_projects.php&showproject=91). While you can import the unconverted FBX file into some 3D editors, it'll likely display and export as a broken animation.
+The exported file can be imported into your 3D editor of choice. Make sure you import the right one. If you are using 3DS max you should see `Animation Take: Havok Frames` when importing. The default import settings should be correct for both Blender and 3DS Max.
 
-Within Noesis, navigate to your export folder in the file tree on the left pane. Your exported .fbx will appear in the middle pane. Selecting it will allow you to preview the animation on the right-most pane. Right-selecting it will allow you to export the .fbx to .fbx. Use the settings in the screenshot below:
+Make as many edits to your animations as you'd like, and export the file as an FBX once again. Make sure Bake Animation is selected, and if you have multiple objects in your scene, make sure to only export the animated armature.
 
-![noesisexport](gh/noeexp.png)
-
-When exported, the file should be called `<file_name>.rda.fbx`.
-
-The exported file can be imported into your 3D editor of choice. Make sure you import the right one. If you are using 3DS max you should see `Animation Take: Noesis Frames` when importing. The default import settings should be correct. 
-
-After making edits to your animation, it should again be exported as an .fbx file before beginning the repacking process.
+With the edited FBX, we can proceed to repacking the file.
 
 ### HKX (Packfile) \[HavokMax\]
 
@@ -172,7 +159,7 @@ Select your edited .fbx or HavokMax export, and press submit to populate the ani
 
 Enter a name and export directory into the Export options and press \[Repack\]. As always, make sure you fill out every field before pressing \[Repack\].
 
-![noesisexport](gh/rtab.png)
+![repack_tab](gh/rtab.png)
 
 ### Getting your edited animation back into FFXIV
 The resulting .pap file can be imported into FFXIV through TexTools by using the raw file operations (Tools > Raw File Operations > Import Raw File), leaving Decompressed Type 2 Data checked, or by placing it in the right place in penumbra.

@@ -88,7 +88,7 @@ def to_fbx_check():
 def assist_skl_tag(skeleton_path, out_path) -> None:
     animassist_check()
 
-    complete = subprocess.run(["animassist.exe", "1", skeleton_path, out_path], capture_output=True, encoding="utf8")
+    complete = subprocess.run(["animassist.exe", "1", skeleton_path, out_path], capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
     dbgprint(f"{complete.returncode}")
     dbgprint(f"{complete.stdout}")
     if not os.path.exists(out_path):
@@ -99,7 +99,7 @@ def assist_skl_tag(skeleton_path, out_path) -> None:
 def assist_skl_anim_pack(skeleton_path, out_path) -> None:
     animassist_check()
 
-    complete = subprocess.run(["animassist.exe", "2", skeleton_path, out_path], capture_output=True, encoding="utf8",text=True)
+    complete = subprocess.run(["animassist.exe", "2", skeleton_path, out_path], capture_output=True, encoding="utf8",text=True, creationflags=subprocess.CREATE_NO_WINDOW)
     dbgprint(f"{complete.returncode}")
     dbgprint(f"{complete.stdout}")
     if not os.path.exists(out_path):
@@ -110,7 +110,7 @@ def assist_skl_anim_pack(skeleton_path, out_path) -> None:
 def assist_combine(skeleton_path, animation_path, animation_index, out_path) -> None:
     animassist_check()
     
-    complete = subprocess.run(["animassist.exe", "3", skeleton_path, animation_path, animation_index, out_path], capture_output=True, encoding="utf8")
+    complete = subprocess.run(["animassist.exe", "3", skeleton_path, animation_path, animation_index, out_path], capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
     dbgprint(f"{complete.returncode}")
     print(f"{complete.stdout}")
 
@@ -122,7 +122,7 @@ def assist_combine(skeleton_path, animation_path, animation_index, out_path) -> 
 def assist_xml(skl_path, animation_path, out_path) -> None:
     animassist_check()
     
-    complete = subprocess.run(["animassist.exe", "4", skl_path, animation_path, out_path], capture_output=True, encoding="utf8")
+    complete = subprocess.run(["animassist.exe", "4", skl_path, animation_path, out_path], capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
     dbgprint(f"{complete.returncode}")
     dbgprint(f"{complete.stdout}")
 
@@ -134,7 +134,7 @@ def assist_xml(skl_path, animation_path, out_path) -> None:
 def assist_tag(xml_path, out_path) -> None:
     animassist_check()
     
-    complete = subprocess.run(["animassist.exe", "5", xml_path, out_path], capture_output=True, encoding="utf8")
+    complete = subprocess.run(["animassist.exe", "5", xml_path, out_path], capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
     dbgprint(f"{complete.returncode}")
     print(f"{complete.stdout}")
 
@@ -147,7 +147,7 @@ def assist_tag(xml_path, out_path) -> None:
 def assist_combine_tag(skeleton_path, animation_path, animation_index, out_path):
     animassist_check()
     
-    complete = subprocess.run(["animassist.exe", "6", skeleton_path, animation_path, animation_index, out_path], capture_output=True, encoding="utf8")
+    complete = subprocess.run(["animassist.exe", "6", skeleton_path, animation_path, animation_index, out_path], capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
     print(f"{complete.returncode}")
     print(f"{complete.stdout}")
 
@@ -158,7 +158,7 @@ def assist_combine_tag(skeleton_path, animation_path, animation_index, out_path)
 
 def to_hkx(skeleton_path, hkx_path, fbx_path, out_path) -> None:
     to_havok_check()
-    complete = subprocess.run("fbx2havok.exe -hk_skeleton " + skeleton_path + " -hk_anim " + hkx_path + " -fbx " + fbx_path + " -hkout " + out_path, capture_output=True, encoding="utf8")
+    complete = subprocess.run("fbx2havok.exe -hk_skeleton " + skeleton_path + " -hk_anim " + hkx_path + " -fbx " + fbx_path + " -hkout " + out_path, capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
     dbgprint(f"{complete.stdout}")
     if not os.path.exists(out_path):
         print("fbx2havok operation failed.")
@@ -256,7 +256,7 @@ def export(skeleton_path, pap_path, anim_index, output_path, file_type):
             if (file_type=="fbx"): 
                 assist_combine_tag(tmp_skel_path, tmp_anim_path, str(anim_index), tmp_anim_bin_path)
                 to_fbx_check()
-                complete = subprocess.call("tofbx.exe -hk_skeleton " + tmp_skel_path + " -hk_anim " + tmp_anim_bin_path + " -fbx " + output_path)
+                complete = subprocess.run("tofbx.exe -hk_skeleton " + tmp_skel_path + " -hk_anim " + tmp_anim_bin_path + " -fbx " + output_path, capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
             elif (file_type=="hkxp"):
                 assist_combine(tmp_skel_path, tmp_anim_path, str(anim_index), output_path)
             elif (file_type=="hkxt"):
