@@ -32,16 +32,11 @@ Using **Blender**? Consider checking out [0ceal0t's BlenderAssist](https://githu
 * [VC++2012 32-bit Redist](https://www.microsoft.com/en-us/download/details.aspx?id=30679#)
     * Select "VSU_4\vcredist_x86.exe" when choosing which file to download.
     * This is required for Havok stuff, please install it.
-* [animassist.exe/tofbx.exe/fbx2havok.exe and associated libraries](#)
-    * **These are already included in the release download.** 
-    * If you wish to view their source or to build them yourself, refer to:
-        * animassist.exe was built from the C++ project in this repository, you **must** use this version of animassist.exe and cannot use the executable from the original project. Refer to [Building](#building) for build requirements.
-        * [tofbx](https://github.com/lmcintyre/fbx2havok) (or a renamed [havok2fbx](https://github.com/razar51/havok2fbx))
-        * [fbx2havok](https://github.com/lmcintyre/fbx2havok) (The build in this project is slightly modified to output uncompressed animations)
 
 ### Recommended software
 * [FFXIV Explorer (goat fork)](https://github.com/goaaats/ffxiv-explorer-fork)
     * Convenient way to browse and extract Skeleton and Animation files. Please use raw extraction (Ctrl+Shift+E) for MultiAssist purposes. Other methods of extractions, such as TexTools, will also work.
+* [TexTools](https://www.ffxiv-textools.net/), [Penumbra](https://github.com/xivdev/Penumbra/), or any other method of importing a .pap file into FFXIV.
 * (**Optional, 3DS Max only**) [HavokMax - 3DS Max plugin](https://github.com/PredatorCZ/HavokMax/)
     * HavokMax adds the functionality to import and export .hkx packfiles through 3DS max.
     * You do not need this if you plan to edit .FBX files. 
@@ -119,6 +114,8 @@ With the paths to the respective files set, press \[Submit\] to populate the ani
 
 The export options in the lower right corner allow you to select the file type and path of your exported animation file. I'll select .fbx and name my animation file export. Select your export directory and press \[Export\] to begin exporting the file. This should be a very quick process. 
 
+If you find that a section of your FBX doesn't seem to be animating, such as a tail, try selecting `Bones = Tracks` and re-exporting from MultiAssist.
+
 Please make sure you have everything correctly inputted before pressing \[Export\]. If successful, there will be a success dialog displaying the export directory.
 
 ![j](gh/etab.png)
@@ -128,7 +125,8 @@ Please make sure you have everything correctly inputted before pressing \[Export
 #### ***NOTE ON FBX SUPPORT:*** 
 *fbx2havok is an older proof-of-concept project by Perchbird, provided mostly as is. This executable in this release is modified to output uncompressed animations, rather than the compressed animation of the original, it is otherwise the original project. **As far as I can tell, this is enough to prevent fbx2havok from being a glitchy mess.** I'm not confident things such as no. of frames are properly preserved, however. If something goes wrong, keep the unpolished nature of this in mind. I would like to see this method fleshed out, and thus am interested in any errors you encounter using this method.*
 
-The exported file can be imported into your 3D editor of choice. Make sure you import the right one. If you are using 3DS max you should see `Animation Take: Havok Frames` when importing. The default import settings should be correct for both Blender and 3DS Max.
+The exported file can be imported into your 3D editor of choice. Make sure you import the right one. If you are using 3DS max you should see `Animation Take: Havok Frames` when importing. The default import settings should be correct for 3DS Max. In Blender, you'll likely want to set `Transform: Scale` to `100.0`. 
+
 
 Make as many edits to your animations as you'd like, and export the file as an FBX once again. Make sure Bake Animation is selected, and if you have multiple objects in your scene, make sure to only export the animated armature.
 
@@ -203,6 +201,12 @@ Furthermore, you can use the original AnimAssist commands with `aextract` and `a
 ### Repackaging
 In short, the files end up as the XML export format discussed in the final step of extraction. From this, the animation and binding of the modded animation replace the animation and binding of the user inputted animation index. The merged XML is passed back to animassist.exe where it is converted into a binary tagfile. The header is regenerated with new offsets and the timeline data is copied from the original .pap into the new export.
 
+### Changes to HAVOK2FBX2HAVOK
+* Doesn't set axis orientation
+* Exports directly to binary
+* Sets customframerate = 30
+* Experimental optional fix for certain components not animating when exported (nnumberoftracks = numberofbones)
+* Outputs uncompressed animations (Optionally compressed in future release)
 
 # Future development plans for MultiAssist
 I hope to continue supporting this project. In the near future I will improve input validation and error reporting within the GUI. Additionally, I am looking for ways to further streamline the process in the more distant future, such as exporting directly to penumbra. Less generally, I believe direct animation swapping and features of a similar vein are also within the scope of this project.

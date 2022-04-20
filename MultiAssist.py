@@ -165,11 +165,11 @@ def to_hkx(skeleton_path, hkx_path, fbx_path, out_path) -> None:
     else:
         dbgprint(f"Saved importable file to {out_path}")
 
-def to_fbx(skeleton_path, hkx_path, out_path):
-    #to_fbx_check()
-    complete = subprocess.run("tofbx.exe -hk_skeleton " + skeleton_path + " -hk_anim " + hkx_path + " -fbx " + out_path, capture_output=True, encoding="utf8")
-    print(f"{complete.stdout}")
-    print(f"{complete.returncode}")
+def to_fbx(skeleton_path, hkx_path, out_path, bones_tracks):
+    to_fbx_check()
+    complete = subprocess.run("tofbx.exe -hk_skeleton " + skeleton_path + " -hk_anim " + hkx_path + " -fbx " + out_path + " -bonetracks " + bones_tracks, capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
+    dbgprint(f"{complete.stdout}")
+    dbgprint(f"{complete.returncode}")
     if not os.path.exists(out_path):
         print("havok2fbx operation failed.")
     else:
@@ -218,7 +218,7 @@ def extract(skeleton_file, anim_file, out_path):
             tmp_anim.write(havok_anim)
         assist_combine(tmp_skel_path, tmp_anim_path, str(havok_anim_index), out_path)
         
-def export(skeleton_path, pap_path, anim_index, output_path, file_type):
+def export(skeleton_path, pap_path, anim_index, output_path, file_type, bone_tracks = 0):
 
     with open(pap_path, "rb") as p:
         pap_data = p.read()
@@ -252,11 +252,9 @@ def export(skeleton_path, pap_path, anim_index, output_path, file_type):
             with open(tmp_anim_path, "wb") as tmp_anim:
                 tmp_anim.write(havok_anim)
             assist_skl_tag(tmp_skel_path, tmp_skel_xml_path)
-            #assist_combine(tmp_skel_path, tmp_anim_path, str(anim_index), tmp_anim_bin_path)
             if (file_type=="fbx"): 
                 assist_combine_tag(tmp_skel_path, tmp_anim_path, str(anim_index), tmp_anim_bin_path)
-                to_fbx_check()
-                complete = subprocess.run("tofbx.exe -hk_skeleton " + tmp_skel_path + " -hk_anim " + tmp_anim_bin_path + " -fbx " + output_path, capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
+                to_fbx(tmp_skel_path,tmp_anim_bin_path,output_path,str(bone_tracks))
             elif (file_type=="hkxp"):
                 assist_combine(tmp_skel_path, tmp_anim_path, str(anim_index), output_path)
             elif (file_type=="hkxt"):
@@ -595,15 +593,15 @@ def read_timeline(tmb_data):
     return
 
 class GUI:
-    EXPORT_TYPES = ['.fbx (Requires Noesis conversion)', '.hkx packfile (HavokMax compatible)', '.hkx tagfile', '.xml']
+    EXPORT_TYPES = ['.fbx', '.hkx packfile (HavokMax compatible)', '.hkx tagfile', '.xml']
     EXPORT_EXT = ['.fbx', '.hkx', '.hkx', '.xml']
     def __init__(self) -> None:
         self.config = configparser.ConfigParser()
         self._config()
         self.anims=[]
         self.reanims=[]
-        
         self._run()
+
         
     def start_loading(self):
         dpg.configure_item("loading_export", show=True)
@@ -661,6 +659,10 @@ class GUI:
         if dpg.get_value(user_data['pap_input']) == "" or dpg.get_value(user_data['sklb_input']) == "":
             self.show_info("Error", "Please make sure you have selected both a .pap and .sklb file.")
             return
+        if not os.path.exists(dpg.get_value(user_data['pap_input'])) or not os.path.exists(dpg.get_value(user_data['sklb_input'])):
+            self.show_info("Error","One or more of the files selected does not exist.")
+            return
+
         with open(dpg.get_value(user_data['pap_input']), "rb") as p:
             pap_data = p.read()
         with open(dpg.get_value(user_data['sklb_input']), "rb") as s:
@@ -747,6 +749,9 @@ class GUI:
                     e = self.EXPORT_TYPES[int(self._get_config('SETTINGS','export_type'))]
                 with dpg.group(horizontal=True):
                     dpg.add_combo(items=self.EXPORT_TYPES, default_value=e, tag="extension_selector", callback=lambda: dpg.set_value("extension", dpg.get_value("extension_selector")[0:4]))
+                    dpg.add_checkbox(label="Bones = Tracks", tag="bone_track_checkbox")
+                    with dpg.popup(dpg.last_item(), no_background=True):
+                        dpg.add_text("Fixes tail animations, but potentially breaks animations intended to be blended?")
                 dpg.add_text("Name: ")
                 with dpg.group(horizontal=True):                    
                     dpg.add_input_text(tag="name")
@@ -769,7 +774,7 @@ class GUI:
 
     def _file_iteration(self, path):
         split = os.path.splitext(path)
-        file_count = 2
+        file_count = 1
         while os.path.exists(split[0]+"_("+str(file_count)+")"+split[1]):
             file_count+=1
         return split[0]+"_("+str(file_count)+")"+split[1]
@@ -781,13 +786,13 @@ class GUI:
         if self.anims == []:
             self.show_info("Error","No animation selected. Did you press [Submit]?")
             return
-        
+
         self.start_loading()
         try:
             path = dpg.get_value("export_directory")+"\\"+dpg.get_value("name")+dpg.get_value("extension")
             if os.path.exists(path) and self._get_config('SETTINGS', 'export_iteration', True):
                 path = self._file_iteration(path)
-            export(dpg.get_value("selected_sklb"), dpg.get_value("selected_pap"), self.anims.index(dpg.get_value("anim_list")), path,self._get_ft() )
+            export(dpg.get_value("selected_sklb"), dpg.get_value("selected_pap"), self.anims.index(dpg.get_value("anim_list")), path,self._get_ft(),int(dpg.get_value("bone_track_checkbox")))
             self._success_check(path)
         except Exception as e:
             print(e)
@@ -867,7 +872,7 @@ class GUI:
 
                 dpg.add_theme_color(dpg.mvThemeCol_TitleBgActive, accent_dark, category=dpg.mvThemeCat_Core)
 
-                dpg.add_theme_color(dpg.mvThemeCol_CheckMark, accent, category=dpg.mvThemeCat_Core)
+                dpg.add_theme_color(dpg.mvThemeCol_CheckMark, accent_dark, category=dpg.mvThemeCat_Core)
 
                 dpg.add_theme_color(dpg.mvThemeCol_SliderGrab, accent_light, category=dpg.mvThemeCat_Core)
                 dpg.add_theme_color(dpg.mvThemeCol_SliderGrabActive, accent, category=dpg.mvThemeCat_Core)
@@ -942,9 +947,10 @@ class GUI:
                     dpg.add_button(label="Save settings", callback=lambda:self._save_settings())
 
                 dpg.add_menu_item(label="Help", callback=lambda:webbrowser.open('https://github.com/ilmheg/MultiAssist/blob/main/README.md'))
+                dpg.add_menu_item(label="                               ", enabled=False) # one right align pls
+                dpg.add_menu_item(label="Alternative Blender Addon (by 0ceal0t)", callback=lambda:webbrowser.open('https://github.com/0ceal0t/BlenderAssist'))
             with dpg.group(horizontal=True):
                 dpg.add_text("MultiAssist")
-                dpg.add_button(small=True, label="Blender user? Check out 0ceal0t's BlenderAssist!", callback=lambda:webbrowser.open('https://github.com/0ceal0t/BlenderAssist'))
             
             with dpg.tab_bar(label='tabbar'):  
                 with dpg.tab(label='Extract'):  

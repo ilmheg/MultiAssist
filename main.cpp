@@ -132,7 +132,7 @@ int main(int argc, const char** argv) {
         auto* skl_container = reinterpret_cast<hkaAnimationContainer*>(skl_root_container->findObjectByType(hkaAnimationContainerClass.getName()));
         skl_container->m_skeletons.clear();
         res = hkSerializeUtil::saveTagfile(skl_root_container, hkRootLevelContainer::staticClass(), stream.getStreamWriter(), nullptr, hkSerializeUtil::SAVE_DEFAULT);
-    } else if (mode == 3) {
+    } else if (mode == 3 || mode == 6) {
         auto* skl_container = reinterpret_cast<hkaAnimationContainer*>(skl_root_container->findObjectByType(hkaAnimationContainerClass.getName()));
         auto anim_container = reinterpret_cast<hkaAnimationContainer*>(anim_root_container->findObjectByType(hkaAnimationContainerClass.getName()));
         auto anim_ptr = anim_container->m_animations[anim_index];
@@ -141,23 +141,17 @@ int main(int argc, const char** argv) {
         auto binding_ref = hkRefPtr<hkaAnimationBinding>(binding_ptr);
         skl_container->m_animations.append(&anim_ref, 1);
         skl_container->m_bindings.append(&binding_ref, 1);
-        res = hkSerializeUtil::savePackfile(skl_root_container, hkRootLevelContainer::staticClass(), stream.getStreamWriter(), packOptions, nullptr, hkSerializeUtil::SAVE_DEFAULT);
+		if (mode == 3) {
+			res = hkSerializeUtil::savePackfile(skl_root_container, hkRootLevelContainer::staticClass(), stream.getStreamWriter(), packOptions, nullptr, hkSerializeUtil::SAVE_DEFAULT);
+		} else if (mode == 6) {
+			res = hkSerializeUtil::saveTagfile(skl_root_container, hkRootLevelContainer::staticClass(), stream.getStreamWriter(), nullptr, hkSerializeUtil::SAVE_DEFAULT);
+		}
     } else if (mode == 4) {
         packOptions.m_writeMetaInfo = true;
         packOptions.m_writeSerializedFalse = false;
         res = hkSerializeDeprecated::getInstance().saveXmlPackfile(anim_root_container, hkRootLevelContainer::staticClass(), stream.getStreamWriter(), packOptions, nullptr, &errOut);
     } else if (mode == 5) {
         res = hkSerializeUtil::saveTagfile(anim_root_container, hkRootLevelContainer::staticClass(), stream.getStreamWriter(), nullptr, hkSerializeUtil::SAVE_DEFAULT);
-    } else if (mode == 6) {
-        auto* skl_container = reinterpret_cast<hkaAnimationContainer*>(skl_root_container->findObjectByType(hkaAnimationContainerClass.getName()));
-        auto anim_container = reinterpret_cast<hkaAnimationContainer*>(anim_root_container->findObjectByType(hkaAnimationContainerClass.getName()));
-        auto anim_ptr = anim_container->m_animations[anim_index];
-        auto binding_ptr = anim_container->m_bindings[anim_index];
-        auto anim_ref = hkRefPtr<hkaAnimation>(anim_ptr);
-        auto binding_ref = hkRefPtr<hkaAnimationBinding>(binding_ptr);
-        skl_container->m_animations.append(&anim_ref, 1);
-        skl_container->m_bindings.append(&binding_ref, 1);
-        res = hkSerializeUtil::saveTagfile(skl_root_container, hkRootLevelContainer::staticClass(), stream.getStreamWriter(), nullptr, hkSerializeUtil::SAVE_DEFAULT);
     }
 
     if (res.isSuccess()) {

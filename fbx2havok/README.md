@@ -1,3 +1,31 @@
+Changes
+=============================
+## tofbx.exe
+* Sets a custom frame rate of 30fps
+* Exports to binary instead of ASCII
+* No longer sets axis orientation
+* Hacky solution to tails not animating
+
+
+## fbx2havok.exe
+* Exports an uncompressed animation
+    * Proper animation compression soon
+
+## TODO
+* Better solution for tail fix
+* Optional compression
+* Optional System Unit: metres (Settings this makes for less work in Blender, more work in 3DS and so on, no advantage to enabling it universally)
+* Removing the loc/rot/scl keyframes from tofbx would be nice. The not bone specific ones.
+
+
+
+
+
+
+
+
+
+
 FBX to Havok for FFXIV
 =============================
 

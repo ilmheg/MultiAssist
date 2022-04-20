@@ -38,5 +38,12 @@ __pycache__/
 release/
 dist/
 
+*.spec
 *.ini
+
+# Input/Ouputs
 *.pap
+*.fbx
+*.hkx
+*.xml
+
