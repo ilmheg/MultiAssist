@@ -270,7 +270,6 @@ int HK_CALL main(int argc, const char** argv)
     // INIT FBX
     FbxManager* lSdkManager = nullptr;
     FbxScene* lScene = nullptr;
-	std::cout << "BoneTrack: " << bonetrack << "\n";
     InitializeSdkObjects(lSdkManager, lScene);
     bool lResult = CreateScene(lSdkManager, lScene, bonetrack);
 
@@ -336,8 +335,8 @@ bool CreateScene(FbxManager* pSdkManager, FbxScene* pScene, bool bonetracks)
     //pScene->GetGlobalSettings().SetSystemUnit(FbxSystemUnit::m);
     //pScene->GetGlobalSettings().SetOriginalSystemUnit(FbxSystemUnit::cm);
 
-    //FbxAxisSystem directXAxisSys(FbxAxisSystem::EUpVector::eYAxis, FbxAxisSystem::EFrontVector::e, FbxAxisSystem::eRightHanded);
-    //directXAxisSys.ConvertScene(pScene);
+    FbxAxisSystem directXAxisSys(FbxAxisSystem::EUpVector::eYAxis, FbxAxisSystem::EFrontVector::e, FbxAxisSystem::eRightHanded);
+    directXAxisSys.ConvertScene(pScene);
 
     pScene->SetSceneInfo(sceneInfo);
     FbxNode* lSkeletonRoot = CreateSkeleton(pScene, "Skeleton");
@@ -458,10 +457,9 @@ void AnimateSkeleton(FbxScene* pScene, bool bonetracks) {
 			TrackNumber = numBones;
 		}
 		else {
-			TrackNumber = animations[a]->m_numberOfTransformTracks;
+			TrackNumber = bindings[a]->m_transformTrackToBoneIndices.getSize();
 		}
         int FloatNumber = animations[a]->m_numberOfFloatTracks;
-
         hkReal incrFrame = animations[a]->m_duration / (hkReal)(FrameNumber - 1);
 
         if (TrackNumber > numBones) {
@@ -474,10 +472,6 @@ void AnimateSkeleton(FbxScene* pScene, bool bonetracks) {
         //        floatsOut.setSize(FloatNumber);
         transformOut.setSize(TrackNumber);
         hkReal startTime = 0.0;
-
-        hkArray<hkInt16> tracks;
-        tracks.setSize(TrackNumber);
-        for (int i = 0; i < TrackNumber; ++i) tracks[i] = i;
 
         hkReal time = startTime;
 
@@ -492,7 +486,7 @@ void AnimateSkeleton(FbxScene* pScene, bool bonetracks) {
             std::string CurBoneNameString = CurrentBoneName;
             BoneIDContainer[y] = GetNodeIDByName(pScene, CurrentBoneName);
 
-            //            std::cout << "\n Bone:" << CurBoneNameString << " ID: " << BoneIDContainer[y] << "\n";
+            //std::cout << "\n Bone:" << CurBoneNameString << " ID: " << BoneIDContainer[y] << "\n";
         }
 
         auto* animatedSkeleton = new hkaAnimatedSkeleton(skeleton);
@@ -509,6 +503,7 @@ void AnimateSkeleton(FbxScene* pScene, bool bonetracks) {
             // assume 1-to-1 transforms
             // loop through animated bones
             for (int i = 0; i < TrackNumber; ++i) {
+				
                 FbxNode* CurrentJointNode = pScene->GetNode(BoneIDContainer[i]);
 
                 //if (std::string(skeleton->m_bones[i].m_name).find("sippo") != std::string::npos) {
