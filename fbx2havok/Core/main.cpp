@@ -56,7 +56,6 @@
 #include <Common/Base/Reflection/hkClassMemberAccessor.h>
 
 // Utils
-#include "hkAssetManagementUtil.h"
 #include "MathHelper.h"
 #include "EulerAngles.h"
 
@@ -239,7 +238,7 @@ int HK_CALL main(int argc, const char** argv)
     {
         loader = new hkLoader();
         {
-            hkStringBuf assetFile(havokskeleton); hkAssetManagementUtil::getFilePath(assetFile);
+            hkStringBuf assetFile(havokskeleton);
             hkRootLevelContainer* container = loader->load( HK_GET_DEMOS_ASSET_FILENAME(assetFile.cString()));
 //            container->
             HK_ASSERT2(0x27343437, container != HK_NULL , "Could not load asset");
@@ -250,7 +249,7 @@ int HK_CALL main(int argc, const char** argv)
         }
 
         {
-            hkStringBuf assetFile(havokanim); hkAssetManagementUtil::getFilePath(assetFile);
+            hkStringBuf assetFile(havokanim);
 
             hkRootLevelContainer* container = loader->load( HK_GET_DEMOS_ASSET_FILENAME(assetFile.cString()));
             HK_ASSERT2(0x27343437, container != HK_NULL , "Could not load asset");

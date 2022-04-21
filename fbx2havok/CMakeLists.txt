@@ -20,21 +20,19 @@ set(
 )
 
 include_directories(
-    "C:/Program Files/Autodesk/FBX/FBX SDK/2014.2.1/include/"
-    "C:/Program Files/HAVOK/SDK/hk2014_1_0_r1/Source/"
+    "${FBX_SDK_ROOT}/include/"
+    "${HAVOK_SDK_ROOT}/Source/"
 )
 
 link_directories(
-    "C:/Program Files/Autodesk/FBX/FBX SDK/2014.2.1/lib/vs2012/x86/release/"
-    "C:/Program Files/HAVOK/SDK/hk2014_1_0_r1/Lib/win32_vs2012_win7_noSimd/release/"
+    "${FBX_SDK_ROOT}/lib/vs2012/x86/debug/"
+    "${HAVOK_SDK_ROOT}/Lib/win32_vs2012_win7_noSimd/debug"
 )
 
 add_library(commonLib
 		Core/EulerAngles.h
 		Core/FBXCommon.cxx
 		Core/FBXCommon.h
-		Core/hkAssetManagementUtil.cpp
-		Core/hkAssetManagementUtil.h
 		Core/MathHelper.h
 		Core/stdafx.cpp
 		Core/stdafx.h
