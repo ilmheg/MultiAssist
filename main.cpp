@@ -13,7 +13,10 @@
 #include <Common/Base/Reflection/hkInternalClassMember.h>
 #include <Common/Serialize/Util/hkSerializeDeprecated.h>
 
+#include <Animation/Animation/hkaAnimation.h>
 #include <Animation/Animation/hkaAnimationContainer.h>
+#include <Animation/Animation/Animation/Util/hkaAdditiveAnimationUtility.h>
+#include <Animation/Animation/Animation/Interleaved/hkaInterleavedUncompressedAnimation.h>
 #include <shellapi.h>
 #include <locale>
 #include <codecvt>
@@ -46,6 +49,8 @@ inline std::string convert_from_wstring(const std::wstring& wstr)
 // animassist.exe (4) in_anim_hkx out_anim_xml
 // animassist.exe (5) in_anim_hkx out_anim_xml
 // animassist.exe (6) in_anim_packfile in_skl_hkx out_anim_hkx
+// animassist.exe (7) in_anim_hkx out_additive_hkx
+// animassist.exe (8) in_mod_hkx in_anim_hkx  out_repacked_hkx
 int main(int argc, const char** argv) {
 
     int nargc = 0;
@@ -66,25 +71,29 @@ int main(int argc, const char** argv) {
 
     hkStringBuf skl_hkt;
     hkStringBuf anim_hkt;
+	hkStringBuf mod_hkt;
     int anim_index;
     std::string outw;
     hkStringBuf out;
     hkRootLevelContainer* skl_root_container;
     hkRootLevelContainer* anim_root_container;
+	hkRootLevelContainer* mod_root_container;
 
     // 1 = skl -> xml packfile
     // 2 = xml packfile of skl and anim -> binary tagfile
     // 3 = skl + anim -> out hk*
     // 4 = skl + anim -> xml packfile
     // 5 = xml packfile of anim -> binary tagfile
-    // 6 = skl + anim - > binary tagfile
+	// 6 = skl + anim - > binary tagfile
+	// 7 = anim - > additive tagfile
+	// 8 = mod_anim + anim - > binary tagfile
     int mode = _wtoi(nargv[1]);
 
     if (mode == 1 || mode == 2) {
         skl_hkt = convert_from_wstring(nargv[2]).c_str();
         out = convert_from_wstring(nargv[3]).c_str();
     }
-    if (mode == 3 || mode == 6) {
+    if (mode == 3 || mode == 6 || mode == 8) {
         skl_hkt = convert_from_wstring(nargv[2]).c_str();
         anim_hkt = convert_from_wstring(nargv[3]).c_str();
         anim_index = _wtoi(nargv[4]);
@@ -95,10 +104,11 @@ int main(int argc, const char** argv) {
         anim_hkt = convert_from_wstring(nargv[3]).c_str();
         out = convert_from_wstring(nargv[4]).c_str();
     }
-    if (mode == 5) {
+    if (mode == 5 || mode == 7) {
         anim_hkt = convert_from_wstring(nargv[2]).c_str();
         out = convert_from_wstring(nargv[3]).c_str();
     }
+
 
     printf("Mode is %d\n", mode);
     init();
@@ -107,12 +117,15 @@ int main(int argc, const char** argv) {
     if (mode == 1 || mode == 2 || mode == 3 || mode == 6) {
         skl_root_container = loader->load(skl_hkt);
     }
-    if (mode == 3 || mode == 4 || mode == 6) {
+    if (mode == 3 || mode == 4 || mode == 6 ) {
         anim_root_container = loader->load(anim_hkt);
     }
-    if (mode == 5) {
+    if (mode == 5 || mode == 7 || mode == 8) {
         anim_root_container = hkSerializeUtil::loadObject<hkRootLevelContainer>(anim_hkt);
     }
+	if (mode == 8) {
+		mod_root_container = hkSerializeUtil::loadObject<hkRootLevelContainer>(skl_hkt);
+	}
 
     hkOstream stream(out);
     hkPackfileWriter::Options packOptions;
@@ -152,7 +165,58 @@ int main(int argc, const char** argv) {
         res = hkSerializeDeprecated::getInstance().saveXmlPackfile(anim_root_container, hkRootLevelContainer::staticClass(), stream.getStreamWriter(), packOptions, nullptr, &errOut);
     } else if (mode == 5) {
         res = hkSerializeUtil::saveTagfile(anim_root_container, hkRootLevelContainer::staticClass(), stream.getStreamWriter(), nullptr, hkSerializeUtil::SAVE_DEFAULT);
-    }
+	} else if (mode == 7) {
+
+		hkaAnimationContainer* anim_container = reinterpret_cast<hkaAnimationContainer*>(anim_root_container->findObjectByType(hkaAnimationContainerClass.getName()));;
+		hkaAnimation* anim_ptr = anim_container->m_animations[0];
+		auto bind_ptr = anim_container->m_bindings[0];
+		auto binding_ref = hkRefPtr<hkaAnimationBinding>(bind_ptr);
+		auto skl_ptr = anim_container->m_skeletons[0];
+		hkaInterleavedUncompressedAnimation* w = static_cast<hkaInterleavedUncompressedAnimation*>(anim_ptr);
+
+		std::cout << bind_ptr->m_transformTrackToBoneIndices.getSize();
+		
+		hkaAdditiveAnimationUtility::ReferencePoseInput rinput;
+		rinput.m_originalData = w->m_transforms.begin();
+		rinput.m_numberOfPoses = w->m_transforms.getSize() / w->m_numberOfTransformTracks;
+		rinput.m_numberOfTransformTracks = w->m_numberOfTransformTracks;
+		rinput.m_referencePose = skl_ptr->m_referencePose.begin();
+		rinput.m_numReferencePose = skl_ptr->m_referencePose.getSize();
+		rinput.m_transformTrackToBoneIndices = bind_ptr->m_transformTrackToBoneIndices.begin();
+		rinput.m_numTransformTrackToBoneIndices = bind_ptr->m_transformTrackToBoneIndices.getSize();
+
+		hkaAdditiveAnimationUtility::Input input;
+		input.m_numberOfPoses = w->m_transforms.getSize() / w->m_numberOfTransformTracks; //frames
+		input.m_numberOfTransformTracks = w->m_numberOfTransformTracks;
+		input.m_originalData = w->m_transforms.begin();
+		input.m_baseData = skl_ptr->m_referencePose.begin();
+
+		hkaAdditiveAnimationUtility::createAdditiveFromPose(input, w->m_transforms.begin());
+		
+		/// Note: For deprecated format, uncomment the define HKA_USE_ADDITIVE_DEPRECATED in hkaAnimation.h
+		/// also remember to set hkaAnimationBinding::ADDITIVE_DEPRECATED
+		/// Couldn't get results from ADDITVE_DEPRECATED, ADDITIVE works in XIV, so here we are
+		/// Source\Animation\Animation\hkaAnimation.h Line #18
+		binding_ref->m_blendHint = hkaAnimationBinding::ADDITIVE;
+		
+		anim_container->m_animations[0] = w;
+		anim_container->m_bindings[0] = binding_ref;
+		res = hkSerializeDeprecated::getInstance().saveXmlPackfile(anim_root_container, hkRootLevelContainer::staticClass(), stream.getStreamWriter(), packOptions, nullptr, &errOut);
+	} else if (mode == 8) {
+		hkaAnimationContainer* anim_container = reinterpret_cast<hkaAnimationContainer*>(anim_root_container->findObjectByType(hkaAnimationContainerClass.getName()));
+		
+		hkaAnimationContainer* mod_container = reinterpret_cast<hkaAnimationContainer*>(mod_root_container->findObjectByType(hkaAnimationContainerClass.getName()));
+
+		auto mod_anim_ptr = mod_container->m_animations[0];
+		
+		auto mod_binding_ptr = mod_container->m_bindings[0];
+		mod_binding_ptr->m_originalSkeletonName = anim_container->m_bindings[anim_index]->m_originalSkeletonName;
+
+		anim_container->m_animations[anim_index] = mod_anim_ptr;
+		anim_container->m_bindings[anim_index] = mod_binding_ptr;
+
+		res = hkSerializeUtil::saveTagfile(anim_root_container, hkRootLevelContainer::staticClass(), stream.getStreamWriter(), nullptr, hkSerializeUtil::SAVE_DEFAULT);
+	}
 
     if (res.isSuccess()) {
         // I had some cleanup here. And then Havok decided to access violate every time.

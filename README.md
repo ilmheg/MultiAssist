@@ -114,8 +114,6 @@ With the paths to the respective files set, press \[Submit\] to populate the ani
 
 The export options in the lower right corner allow you to select the file type and path of your exported animation file. I'll select .fbx and name my animation file export. Select your export directory and press \[Export\] to begin exporting the file. This should be a very quick process. 
 
-If you find that a section of your FBX doesn't seem to be animating, such as a tail, try selecting `Bones = Tracks` and re-exporting from MultiAssist.
-
 Please make sure you have everything correctly inputted before pressing \[Export\]. If successful, there will be a success dialog displaying the export directory.
 
 ![j](gh/etab.png)
@@ -123,10 +121,9 @@ Please make sure you have everything correctly inputted before pressing \[Export
 ## Editing your exported animation
 ### FBX
 #### ***NOTE ON FBX SUPPORT:*** 
-*fbx2havok is an older proof-of-concept project by Perchbird, provided mostly as is. This executable in this release is modified to output uncompressed animations, rather than the compressed animation of the original, it is otherwise the original project. **As far as I can tell, this is enough to prevent fbx2havok from being a glitchy mess.** I'm not confident things such as no. of frames are properly preserved, however. If something goes wrong, keep the unpolished nature of this in mind. I would like to see this method fleshed out, and thus am interested in any errors you encounter using this method.*
+*fbx2havok is an older proof-of-concept project by Perchbird, provided mostly as is. The build in this project makes a number of changes for ease of use in Blender and prevents re-imported animations from being glitchy. If something goes wrong, keep the unpolished nature of this in mind. I am interested in any errors you encounter using this method.*
 
 The exported file can be imported into your 3D editor of choice. Make sure you import the right one. If you are using 3DS max you should see `Animation Take: Havok Frames` when importing. The default import settings should be correct for 3DS Max. In Blender, you'll likely want to set `Transform: Scale` to `100.0`. 
-
 
 Make as many edits to your animations as you'd like, and export the file as an FBX once again. Make sure Bake Animation is selected, and if you have multiple objects in your scene, make sure to only export the animated armature.
 

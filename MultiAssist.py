@@ -156,6 +156,29 @@ def assist_combine_tag(skeleton_path, animation_path, animation_index, out_path)
     else:
         dbgprint(f"Saved importable file to {out_path}")
 
+def assist_blend(animation_path, out_path):
+    animassist_check()
+    print(["animassist.exe", "7", animation_path, out_path])
+    complete = subprocess.run(["animassist.exe", "7",  animation_path, out_path], capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
+    print(f"{complete.returncode}")
+    print(f"{complete.stdout}")
+
+    if not os.path.exists(out_path):
+        print("binary tagfile assist failed")
+    else:
+        dbgprint(f"Saved importable file to {out_path}")
+
+def assist_repack(mod_path, animation_path, animation_index, out_path):
+    animassist_check()
+    complete = subprocess.run(["animassist.exe", "8", mod_path, animation_path, animation_index, out_path], capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
+    print(f"{complete.returncode}")
+    print(f"{complete.stdout}")
+
+    if not os.path.exists(out_path):
+        print("binary tagfile assist failed")
+    else:
+        dbgprint(f"Saved importable file to {out_path}")
+
 def to_hkx(skeleton_path, hkx_path, fbx_path, out_path) -> None:
     to_havok_check()
     complete = subprocess.run("fbx2havok.exe -hk_skeleton " + skeleton_path + " -hk_anim " + hkx_path + " -fbx " + fbx_path + " -hkout " + out_path, capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
@@ -165,9 +188,9 @@ def to_hkx(skeleton_path, hkx_path, fbx_path, out_path) -> None:
     else:
         dbgprint(f"Saved importable file to {out_path}")
 
-def to_fbx(skeleton_path, hkx_path, out_path, bones_tracks):
+def to_fbx(skeleton_path, hkx_path, out_path):
     to_fbx_check()
-    complete = subprocess.run("tofbx.exe -hk_skeleton " + skeleton_path + " -hk_anim " + hkx_path + " -fbx " + out_path + " -bonetracks " + bones_tracks, capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
+    complete = subprocess.run("tofbx.exe -hk_skeleton " + skeleton_path + " -hk_anim " + hkx_path + " -fbx " + out_path , capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
     dbgprint(f"{complete.stdout}")
     dbgprint(f"{complete.returncode}")
     if not os.path.exists(out_path):
@@ -218,7 +241,7 @@ def extract(skeleton_file, anim_file, out_path):
             tmp_anim.write(havok_anim)
         assist_combine(tmp_skel_path, tmp_anim_path, str(havok_anim_index), out_path)
         
-def export(skeleton_path, pap_path, anim_index, output_path, file_type, bone_tracks = 0):
+def export(skeleton_path, pap_path, anim_index, output_path, file_type):
 
     with open(pap_path, "rb") as p:
         pap_data = p.read()
@@ -254,7 +277,7 @@ def export(skeleton_path, pap_path, anim_index, output_path, file_type, bone_tra
             assist_skl_tag(tmp_skel_path, tmp_skel_xml_path)
             if (file_type=="fbx"): 
                 assist_combine_tag(tmp_skel_path, tmp_anim_path, str(anim_index), tmp_anim_bin_path)
-                to_fbx(tmp_skel_path,tmp_anim_bin_path,output_path,str(bone_tracks))
+                to_fbx(tmp_skel_path,tmp_anim_bin_path,output_path)
             elif (file_type=="hkxp"):
                 assist_combine(tmp_skel_path, tmp_anim_path, str(anim_index), output_path)
             elif (file_type=="hkxt"):
@@ -313,31 +336,29 @@ def repack(skeleton_file, anim_file, mod_file, out_path):
             out.write(post_havok)
         print(f"Wrote new pap to {out_path}!")
 
-def multi_repack(skeleton_file : str, anim_file : str, mod_file : str, anim_index, out_path : str):
+def multi_repack(skeleton_file : str, anim_file : str, mod_file : str, anim_index, out_path : str, additive : bool):
     with open(skeleton_file, "rb") as s:
         orig_sklb_data = s.read()
     with open(anim_file, "rb") as a:
         orig_pap_data = a.read()
     with open(mod_file, "rb") as m:
         mod_data = m.read()
-
     
+    print("a")
     sklb_hdr = read_sklb_header(orig_sklb_data)
     pap_hdr = read_pap_header(orig_pap_data)
     print(f"The input skeleton is for ID {sklb_hdr['skele_id']}.")
     print(f"The input animation is for ID {pap_hdr['skele_id']}.")
     print(f"If these mismatch, things will go very badly.")
     with tempfile.TemporaryDirectory() as tmp_folder:
-        tmp_fbx_path = os.path.join(tmp_folder, "tmp_fbx_bin") #.fbx
-        tmp_skel_path = os.path.join(tmp_folder, "tmp_skel_bin") #.hkx
-        tmp_pap_path = os.path.join(tmp_folder, "tmp_pap_bin") # .hkx
-        tmp_mod_path = os.path.join(tmp_folder, "tmp_mod_bin")   # .hkx
-        tmp_skl_xml_path = os.path.join(tmp_folder, "tmp_skl_xml") 
-        tmp_pap_xml_path = os.path.join(tmp_folder, "tmp_pap_xml") # .xml
-        tmp_mod_xml_path = os.path.join(tmp_folder, "tmp_mod_xml") # .xml
-        tmp_out_xml_path = os.path.join(tmp_folder, "tmp_out_xml") # .xml
-        tmp_out_bin_path = os.path.join(tmp_folder, "tmp_out_bin") # .xml
-        
+        tmp_fbx_path = os.path.join(tmp_folder, "tmp_fbx_bin")    
+
+        tmp_skel_path = os.path.join(tmp_folder, "tmp_skel_bin")   
+        tmp_pap_path = os.path.join(tmp_folder, "tmp_pap_bin")     
+        tmp_mod_path = os.path.join(tmp_folder, "tmp_mod_bin")    
+
+        tmp_out_bin_path = os.path.join(tmp_folder, "tmp_out_bin") 
+
         havok_skel = get_havok_from_sklb(orig_sklb_data)
         havok_pap = get_havok_from_pap(orig_pap_data)
         
@@ -350,33 +371,14 @@ def multi_repack(skeleton_file : str, anim_file : str, mod_file : str, anim_inde
         
         if(mod_file.endswith(".fbx")):
             to_hkx(tmp_skel_path, tmp_pap_path, tmp_fbx_path, tmp_mod_path)
-            assist_xml(tmp_skel_path, tmp_mod_path, tmp_mod_xml_path) 
         else:
-            with open (mod_file, "rb") as mf:
-                mod_xml_str = mf.read()
-            assist_skl_tag(tmp_skel_path, tmp_skl_xml_path)
-            with open(tmp_skl_xml_path, "r", encoding="utf8") as sklxml:
-                skl_xml_str = sklxml.read()
-            new_xml = get_remapped_xml(skl_xml_str, mod_xml_str) 
-            with open(tmp_mod_xml_path, "w") as tmpxml:
-                tmpxml.write(new_xml)
+            tmp_mod_path = tmp_fbx_path
 
-        assist_xml(tmp_skel_path, tmp_pap_path, tmp_pap_xml_path) 
-        with open(tmp_pap_xml_path, "r", encoding="utf8") as pxml:
-            pap_xml_str = pxml.read()
+        if additive: 
+            assist_blend(tmp_mod_path,tmp_mod_path)
         
-        if(mod_file.endswith(".fbx")):
-            with open(tmp_mod_xml_path, "r", encoding="utf8") as mxml:
-                mod_xml_str = mxml.read()
-        else:
-             mod_xml_str = new_xml
-        merged_xml = merge_xml(pap_xml_str, mod_xml_str, int(anim_index))
-
-        with open(tmp_out_xml_path, "w") as fd:
-            fd.write(merged_xml)
-            
-        assist_tag(tmp_out_xml_path, tmp_out_bin_path)
-
+        assist_repack(tmp_mod_path,tmp_pap_path,str(anim_index),tmp_out_bin_path)
+        
         with open(tmp_out_bin_path, "rb") as modbin:
             new_havok = modbin.read()
 
@@ -391,14 +393,14 @@ def multi_repack(skeleton_file : str, anim_file : str, mod_file : str, anim_inde
         
         post_havok = orig_pap_data[pap_hdr["timeline_offset"]:]
 
+        # Write .pap file
         if os.path.getsize(tmp_out_bin_path) != 0:
             with open(out_path, "wb") as out:
                 out.write(pre_havok)
                 out.write(new_havok)
                 out.write(post_havok)
             print(f"Wrote new pap to {out_path}!")
-        
-          
+            
 def get_remapped_xml(skl_xml: str, skl_anim_xml: str) -> list:
     sk_soup = BeautifulSoup(skl_xml, features="html.parser")
     anim_soup = BeautifulSoup(skl_anim_xml, features="html.parser")
@@ -421,47 +423,6 @@ def get_remapped_xml(skl_xml: str, skl_anim_xml: str) -> list:
 
     tt_element = anim_soup.find("hkparam", {"name": "transformTrackToBoneIndices"})
     return str(skl_anim_xml, encoding="utf8").replace(tt_element.text, bonemap_str)
-
-def merge_xml(pap_xml: str, mod_xml: str, anim_index: int) -> str:
-    # I'll probably move this to animassist.exe in the future
-    # For the moment, handled correctly, this absolutely localizes change within the havok data to the animation/binding you've swapped. 
-    # Other than the Havok version data, this should be functionally identical to the original .pap, except for the modded area, of course.
-    # It's also just the first method I thought of when trying to multi-pack.
-    orig_soup = BeautifulSoup(pap_xml, features="html.parser")
-    mod_soup = BeautifulSoup(mod_xml, features="html.parser")
-    anims = []
-    bindings = []
-    m_anims = []
-    m_bindings = []
-
-    # Will probably clean this up later
-    # Not handling the whitespace characters results in the joining of two elements in very long .pap files, making them untargetable and offsetting the higher elements.
-    for a in re.sub(r"\s+", " ", orig_soup.find("hkobject", {"class": "hkaAnimationContainer"}).find("hkparam", {"name": "animations"}).text).strip().split(" "):
-        anims.append(a)
-    for a in re.sub(r"\s+", " ", orig_soup.find("hkobject", {"class": "hkaAnimationContainer"}).find("hkparam", {"name": "bindings"}).text).strip().split(" "):
-        bindings.append(a)
-    print(anims)
-    print(anims[anim_index]) 
-
-    # The modded animation should really only have one anim/binding at the moment. I'll probably keep this as is to facilitate in-app animation swapping in the future.
-    # The hkobject renaming will have to be somewhat different when such is implemented, however.
-    for a in re.sub(r"\s+", " ", mod_soup.find("hkobject", {"class": "hkaAnimationContainer"}).find("hkparam", {"name": "animations"}).text).strip().split(" "):
-        m_anims.append(a)
-    for a in re.sub(r"\s+", " ", mod_soup.find("hkobject", {"class": "hkaAnimationContainer"}).find("hkparam", {"name": "bindings"}).text).strip().split(" "):
-        m_bindings.append(a)
-
-    # This operation must be done before merging the modded data, otherwise it will create duplicate animation/bindings ids that will corrupt the output.
-    m_ra = mod_soup.find("hkobject", {"name": m_anims[0]}) 
-    m_rb = mod_soup.find("hkobject", {"name": m_bindings[0]}) 
-
-    m_ra["name"] = anims[anim_index]
-    m_rb["name"] = bindings[anim_index]
-    m_rb.find("hkparam", {"name":"animation"}).string.replaceWith(anims[anim_index])
-
-    # Replace the animations[index] and bindings[index] objects with the fromatted animations from the modded XML.
-    orig_soup.find("hkobject", {"name": anims[anim_index]}).replace_with(m_ra)
-    orig_soup.find("hkobject", {"name": bindings[anim_index]}).replace_with(m_rb)
-    return str(orig_soup)
 
 SKLB_HDR_1 = ['magic', 'version', 'offset1', 'havok_offset', 'skele_id', 'other_ids']
 def read_sklb_header_1(sklb_data) -> dict:
@@ -749,9 +710,6 @@ class GUI:
                     e = self.EXPORT_TYPES[int(self._get_config('SETTINGS','export_type'))]
                 with dpg.group(horizontal=True):
                     dpg.add_combo(items=self.EXPORT_TYPES, default_value=e, tag="extension_selector", callback=lambda: dpg.set_value("extension", dpg.get_value("extension_selector")[0:4]))
-                    dpg.add_checkbox(label="Bones = Tracks", tag="bone_track_checkbox")
-                    with dpg.popup(dpg.last_item(), no_background=True):
-                        dpg.add_text("Fixes tail animations, but potentially breaks animations intended to be blended?")
                 dpg.add_text("Name: ")
                 with dpg.group(horizontal=True):                    
                     dpg.add_input_text(tag="name")
@@ -792,7 +750,7 @@ class GUI:
             path = dpg.get_value("export_directory")+"\\"+dpg.get_value("name")+dpg.get_value("extension")
             if os.path.exists(path) and self._get_config('SETTINGS', 'export_iteration', True):
                 path = self._file_iteration(path)
-            export(dpg.get_value("selected_sklb"), dpg.get_value("selected_pap"), self.anims.index(dpg.get_value("anim_list")), path,self._get_ft(),int(dpg.get_value("bone_track_checkbox")))
+            export(dpg.get_value("selected_sklb"), dpg.get_value("selected_pap"), self.anims.index(dpg.get_value("anim_list")), path,self._get_ft())
             self._success_check(path)
         except Exception as e:
             print(e)
@@ -812,9 +770,15 @@ class GUI:
             path = dpg.get_value("reexport_directory")+"\\"+dpg.get_value("rename")+".pap"
             if os.path.exists(path) and self._get_config('SETTINGS', 'export_iteration', True):
                 path = self._file_iteration(path)
-            multi_repack( dpg.get_value("selected_resklb"),dpg.get_value("selected_repap"),dpg.get_value("selected_fbx"), self.reanims.index(dpg.get_value("reanim_list")), path)
+            multi_repack(dpg.get_value("selected_resklb"),
+                        dpg.get_value("selected_repap"),
+                        dpg.get_value("selected_fbx"), 
+                        self.reanims.index(dpg.get_value("reanim_list")), 
+                        path,  
+                        dpg.get_value("additive_setting"))
             self._success_check(path)
-        except:
+        except Exception as e:
+            print(e)
             self.show_info("Error", "An error occurred within the extraction process. No file was written.")
         self.stop_loading()
 
@@ -841,6 +805,10 @@ class GUI:
                 dpg.add_radio_button(tag="reanim_list", label="radio", default_value=0)
             with dpg.child_window(autosize_y=True, autosize_x=True, tag="reexport_window"):
                 dpg.add_text("Export Options")
+                with dpg.group(horizontal=True):    
+                    dpg.add_checkbox(label="Additive (EXPERIMENTAL)", tag="additive_setting")
+                    # Add additional settings
+                    # Additive may eventually be a "AUTO/YES/NO" combo
                 dpg.add_text("Name:")
                 with dpg.group(horizontal=True):                    
                     dpg.add_input_text(tag="rename")

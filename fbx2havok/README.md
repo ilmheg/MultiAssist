@@ -1,21 +1,29 @@
 Changes
 =============================
+# General
+* Removes hkaAssetManagerUtil
+    * There was no reason to keep this here.
+
 ## tofbx.exe
 * Sets a custom frame rate of 30fps
 * Exports to binary instead of ASCII
 * No longer sets axis orientation
-* Hacky solution to tails not animating
+    * This is purely for blender comfort.
+* All bones will animate. 
+    * Currently investigating potential negative side effects to this.
+    * This provides the same behavior as HavokMax would, I think this not being a thing was an oversight.
+        * HavokMax does have "Optimize Tracks" to overcome the potential negative side of this, but I don't think I'll implement this.
 
 
 ## fbx2havok.exe
 * Exports an uncompressed animation
-    * Proper animation compression soon
 
 ## TODO
-* Better solution for tail fix
 * Optional compression
+    * Predictive and Quantized perform well (Predictive more so, on the compression ratio side) (assuming they run in XIV)
+    * SplineCompression sometimes works okay.
 * Optional System Unit: metres (Settings this makes for less work in Blender, more work in 3DS and so on, no advantage to enabling it universally)
-* Removing the loc/rot/scl keyframes from tofbx would be nice. The not bone specific ones.
+* Removing the loc/rot/scl keyframes from tofbx would be nice. The not bone specific ones. Really only for blender this.
 
 
 

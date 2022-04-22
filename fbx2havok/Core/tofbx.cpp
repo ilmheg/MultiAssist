@@ -64,9 +64,9 @@
 #include "FBXCommon.h" // samples common path, todo better way
 
 // FBX Function prototypes.
-bool CreateScene(FbxManager* pSdkManager, FbxScene* pScene, bool bonetracks); // create FBX scene
+bool CreateScene(FbxManager* pSdkManager, FbxScene* pScene); // create FBX scene
 FbxNode* CreateSkeleton(FbxScene* pScene, const char* pName); // create the actual skeleton
-void AnimateSkeleton(FbxScene* pScene, bool bonetracks); // add animation to it
+void AnimateSkeleton(FbxScene* pScene); // add animation to it
 
 void PlatformInit();
 void PlatformFileSystemInit();
@@ -130,7 +130,6 @@ int HK_CALL main(int argc, const char** argv)
     hkStringBuf havokanim;
     const char* fbxfile = nullptr;
     std::string havok_path_backup;
-	bool bonetrack = false;
 
     bool bSkeletonIsValid = false;
 
@@ -204,20 +203,6 @@ int HK_CALL main(int argc, const char** argv)
                     return 1;
                 }
             }
-
-			if (arg == "-bonetracks")
-			{
-				if (i + 1 < argc)
-				{
-					bonetrack = atoi(argv[i + 1]);
-					std::cout << "Bones = Tracks: " << bonetrack << "\n";
-				}
-				else
-				{
-					std::cerr << "--bonetracks requires 0 or 1 bool argument." << std::endl;
-					return 1;
-				}
-			}
         }
     }
 
@@ -231,7 +216,7 @@ int HK_CALL main(int argc, const char** argv)
     {
         loader = new hkLoader();
         {
-            hkStringBuf assetFile(havokskeleton); 
+			hkStringBuf assetFile(havokskeleton);
             hkRootLevelContainer* container = loader->load(HK_GET_DEMOS_ASSET_FILENAME(assetFile.cString()));
             HK_ASSERT2(0x27343437, container != HK_NULL, "Could not load asset");
             auto* ac = reinterpret_cast<hkaAnimationContainer*>(container->findObjectByType(hkaAnimationContainerClass.getName()));
@@ -244,7 +229,7 @@ int HK_CALL main(int argc, const char** argv)
         // Get the animation and the binding
         if (bAnimationGiven)
         {
-            hkStringBuf assetFile(havokanim); 
+			hkStringBuf assetFile(havokanim);
 
             hkRootLevelContainer* container = loader->load(HK_GET_DEMOS_ASSET_FILENAME(assetFile.cString()));
             HK_ASSERT2(0x27343437, container != HK_NULL, "Could not load asset");
@@ -271,7 +256,7 @@ int HK_CALL main(int argc, const char** argv)
     FbxManager* lSdkManager = nullptr;
     FbxScene* lScene = nullptr;
     InitializeSdkObjects(lSdkManager, lScene);
-    bool lResult = CreateScene(lSdkManager, lScene, bonetrack);
+    bool lResult = CreateScene(lSdkManager, lScene);
 
     if (!lResult)
     {
@@ -320,7 +305,7 @@ int HK_CALL main(int argc, const char** argv)
     }
 }
 
-bool CreateScene(FbxManager* pSdkManager, FbxScene* pScene, bool bonetracks)
+bool CreateScene(FbxManager* pSdkManager, FbxScene* pScene)
 {
     // create scene info
     FbxDocumentInfo* sceneInfo = FbxDocumentInfo::Create(pSdkManager, "SceneInfo");
@@ -335,8 +320,8 @@ bool CreateScene(FbxManager* pSdkManager, FbxScene* pScene, bool bonetracks)
     //pScene->GetGlobalSettings().SetSystemUnit(FbxSystemUnit::m);
     //pScene->GetGlobalSettings().SetOriginalSystemUnit(FbxSystemUnit::cm);
 
-    FbxAxisSystem directXAxisSys(FbxAxisSystem::EUpVector::eYAxis, FbxAxisSystem::EFrontVector::e, FbxAxisSystem::eRightHanded);
-    directXAxisSys.ConvertScene(pScene);
+    //FbxAxisSystem directXAxisSys(FbxAxisSystem::EUpVector::eYAxis, FbxAxisSystem::EFrontVector::eParityEven, FbxAxisSystem::eRightHanded);
+    //directXAxisSys.ConvertScene(pScene);
 
     pScene->SetSceneInfo(sceneInfo);
     FbxNode* lSkeletonRoot = CreateSkeleton(pScene, "Skeleton");
@@ -347,7 +332,7 @@ bool CreateScene(FbxManager* pSdkManager, FbxScene* pScene, bool bonetracks)
 
     // Animation only if specified
     if (bAnimationGiven)
-        AnimateSkeleton(pScene,bonetracks);
+        AnimateSkeleton(pScene);
 
     return true;
 }
@@ -433,7 +418,7 @@ FbxNode* CreateSkeleton(FbxScene* pScene, const char* pName)
 }
 
 // Create animation stack.
-void AnimateSkeleton(FbxScene* pScene, bool bonetracks) {
+void AnimateSkeleton(FbxScene* pScene) {
     for (int a = 0; a < numAnims; a++) {
         FbxString lAnimStackName;
         FbxTime lTime;
@@ -451,14 +436,7 @@ void AnimateSkeleton(FbxScene* pScene, bool bonetracks) {
         const int numBones = skeleton->m_bones.getSize();
 
         int FrameNumber = animations[a]->getNumOriginalFrames();
-		int TrackNumber;
-		std::cout << bonetracks;
-		if (bonetracks) {
-			TrackNumber = numBones;
-		}
-		else {
-			TrackNumber = bindings[a]->m_transformTrackToBoneIndices.getSize();
-		}
+		int TrackNumber = numBones;
         int FloatNumber = animations[a]->m_numberOfFloatTracks;
         hkReal incrFrame = animations[a]->m_duration / (hkReal)(FrameNumber - 1);
 
