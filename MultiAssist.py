@@ -1,4 +1,3 @@
-from bs4 import BeautifulSoup
 import argparse
 import struct
 import tempfile
@@ -6,19 +5,15 @@ import subprocess
 import os
 import sys
 import dearpygui.dearpygui as dpg
-import warnings
-import re
 import webbrowser
 import configparser
-warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
-
+from tkinter import filedialog as fd
 gui = 0
 
 debug = False
 def dbgprint(text: str) -> None:
     if debug:
         print(f"[dbg] {text}")
-
 
 def define_parser():
     parser = argparse.ArgumentParser(description="Utilities for the manual animation modding workflow in XIV.",
@@ -39,17 +34,7 @@ def define_parser():
     pack_parser.add_argument("-a", "--anim-file", type=str, help="The modified animation Havok XML packfile.", required=True)
     pack_parser.add_argument("-i", "--anim-index", type=str, help="The index of the animation you are replacing.", required=True)
     pack_parser.add_argument("-o", "--out-file", type=str, help="The output pap file.", required=True)
-
-    aextract_parser = subparsers.add_parser("aextract", help="Extract a Havok binary packfile for editing in 3DS Max, using a pap and sklb file from XIV.")
-    aextract_parser.add_argument("-s", "--skeleton-file", type=argparse.FileType("rb"), help="The input skeleton sklb file.", required=True)
-    aextract_parser.add_argument("-p", "--pap-file", type=argparse.FileType("rb"), help="The input animation pap file.", required=True)
-    aextract_parser.add_argument("-o", "--out-file", type=str, help="The output Havok binary packfile.", required=True)
-
-    apack_parser = subparsers.add_parser("apack", help="Repack an existing pap file with a new animation. Requires the input skeleton.")
-    apack_parser.add_argument("-s", "--skeleton-file", type=argparse.FileType("rb"), help="The input skeleton sklb file.", required=True)
-    apack_parser.add_argument("-p", "--pap-file", type=argparse.FileType("rb"), help="The input pap file.", required=True)
-    apack_parser.add_argument("-a", "--anim-file", type=argparse.FileType("rb"), help="The modified animation Havok XML packfile.", required=True)
-    apack_parser.add_argument("-o", "--out-file", type=str, help="The output pap file.", required=True)
+    pack_parser.add_argument("-b", "--blend", type=bool, help="Repack and create additive animation (0/1)", required=True)
 
     import textwrap
     parser.epilog = textwrap.dedent(
@@ -57,8 +42,6 @@ def define_parser():
         commands usage:
         {extract_parser.format_usage()}
         {pack_parser.format_usage()}
-        {aextract_parser.format_usage()}
-        {apack_parser.format_usage()}
         Remember that each command also has its own, more descriptive, -h/--help arg, describing what file types are expected.
         """
     )
@@ -112,7 +95,7 @@ def assist_combine(skeleton_path, animation_path, animation_index, out_path) -> 
     
     complete = subprocess.run(["animassist.exe", "3", skeleton_path, animation_path, animation_index, out_path], capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
     dbgprint(f"{complete.returncode}")
-    print(f"{complete.stdout}")
+    dbgprint(f"{complete.stdout}")
 
     if not os.path.exists(out_path):
         print("binary packfile assist failed")
@@ -136,7 +119,7 @@ def assist_tag(xml_path, out_path) -> None:
     
     complete = subprocess.run(["animassist.exe", "5", xml_path, out_path], capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
     dbgprint(f"{complete.returncode}")
-    print(f"{complete.stdout}")
+    dbgprint(f"{complete.stdout}")
 
     if not os.path.exists(out_path):
         print("xml tagfile assist failed")
@@ -148,8 +131,8 @@ def assist_combine_tag(skeleton_path, animation_path, animation_index, out_path)
     animassist_check()
     
     complete = subprocess.run(["animassist.exe", "6", skeleton_path, animation_path, animation_index, out_path], capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
-    print(f"{complete.returncode}")
-    print(f"{complete.stdout}")
+    dbgprint(f"{complete.returncode}")
+    dbgprint(f"{complete.stdout}")
 
     if not os.path.exists(out_path):
         print("binary tagfile assist failed")
@@ -158,24 +141,34 @@ def assist_combine_tag(skeleton_path, animation_path, animation_index, out_path)
 
 def assist_blend(animation_path, out_path):
     animassist_check()
-    print(["animassist.exe", "7", animation_path, out_path])
     complete = subprocess.run(["animassist.exe", "7",  animation_path, out_path], capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
-    print(f"{complete.returncode}")
-    print(f"{complete.stdout}")
+    dbgprint(f"{complete.returncode}")
+    dbgprint(f"{complete.stdout}")
 
     if not os.path.exists(out_path):
-        print("binary tagfile assist failed")
+        print("additive assist failed")
     else:
         dbgprint(f"Saved importable file to {out_path}")
 
 def assist_repack(mod_path, animation_path, animation_index, out_path):
     animassist_check()
     complete = subprocess.run(["animassist.exe", "8", mod_path, animation_path, animation_index, out_path], capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
-    print(f"{complete.returncode}")
-    print(f"{complete.stdout}")
+    dbgprint(f"{complete.returncode}")
+    dbgprint(f"{complete.stdout}")
 
     if not os.path.exists(out_path):
-        print("binary tagfile assist failed")
+        print("repack assist failed")
+    else:
+        dbgprint(f"Saved importable file to {out_path}")
+
+def assist_compress(animation_path, out_path):
+    animassist_check()
+    complete = subprocess.run(["animassist.exe", "9", animation_path, out_path], capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
+    dbgprint(f"{complete.returncode}")
+    dbgprint(f"{complete.stdout}")
+
+    if not os.path.exists(out_path):
+        print("animation compression assist failed")
     else:
         dbgprint(f"Saved importable file to {out_path}")
 
@@ -197,50 +190,7 @@ def to_fbx(skeleton_path, hkx_path, out_path):
         print("havok2fbx operation failed.")
     else:
         print(f"Saved importable file to {out_path}")
-
-def extract(skeleton_file, anim_file, out_path):
-    sklb_data = skeleton_file.read()
-    pap_data = anim_file.read()
-    sklb_hdr = read_sklb_header(sklb_data)
-    pap_hdr = read_pap_header(pap_data)
-
-    print(f"The input skeleton is for ID {sklb_hdr['skele_id']}.")
-    print(f"The input animation is for ID {pap_hdr['skele_id']}.")
-    print(f"If these mismatch, things will go very badly.")
-
-
-    num_anims = len(pap_hdr["anim_infos"])
-    if num_anims > 1:
-        print("Please choose which one number to use and press enter:")
-        for i in range(num_anims):
-            print(f"{i + 1}: {pap_hdr['anim_infos'][i]['name']}")
-        print(f"{num_anims + 1}: Quit")
-        while True:
-            try:
-                choice = int(input())
-            except ValueError:
-                continue
-            if choice and choice > -1 and choice <= num_anims + 1:
-                break
-        if choice >= num_anims + 1:
-            sys.exit(1)
-        havok_anim_index = pap_hdr["anim_infos"][choice]["havok_index"] 
-    else:
-        havok_anim_index = 0
-
-    with tempfile.TemporaryDirectory() as tmp_folder:
-        tmp_skel_path = os.path.join(tmp_folder, "tmp_skel")
-        tmp_anim_path = os.path.join(tmp_folder, "tmp_anim")
-        dbgprint(f"we have {tmp_skel_path} as tmp_skel")
-        dbgprint(f"we have {tmp_anim_path} as tmp_anim")
-        havok_skel = get_havok_from_sklb(sklb_data)
-        havok_anim = get_havok_from_pap(pap_data)
-        with open(tmp_skel_path, "wb") as tmp_skel:
-            tmp_skel.write(havok_skel)
-        with open(tmp_anim_path, "wb") as tmp_anim:
-            tmp_anim.write(havok_anim)
-        assist_combine(tmp_skel_path, tmp_anim_path, str(havok_anim_index), out_path)
-        
+       
 def export(skeleton_path, pap_path, anim_index, output_path, file_type):
 
     with open(pap_path, "rb") as p:
@@ -285,58 +235,7 @@ def export(skeleton_path, pap_path, anim_index, output_path, file_type):
             elif (file_type=="xml"):
                 assist_xml(tmp_skel_path, tmp_anim_path, output_path)
 
-def xml_snipper():
-    # Standalone way to snip XML
-    return
-
-def repack(skeleton_file, anim_file, mod_file, out_path):
-    orig_sklb_data = skeleton_file.read()
-    orig_pap_data = anim_file.read()
-
-    sklb_hdr = read_sklb_header(orig_sklb_data)
-    pap_hdr = read_pap_header(orig_pap_data)
-
-    print(f"The input skeleton is for ID {sklb_hdr['skele_id']}.")
-    print(f"The input animation is for ID {pap_hdr['skele_id']}.")
-    print(f"If these mismatch, things will go very badly.")
-    with tempfile.TemporaryDirectory() as tmp_folder:
-        skel_bin_path = os.path.join(tmp_folder, "tmp_skel_bin")
-        skel_xml_path = os.path.join(tmp_folder, "tmp_skel_xml")
-        tmp_mod_xml_path = os.path.join(tmp_folder, "tmp_mod_xml")
-        tmp_mod_bin_path = os.path.join(tmp_folder, "tmp_mod_bin")
-
-        with open(skel_bin_path, "wb") as sklbin:
-            sklbin.write(get_havok_from_sklb(orig_sklb_data))
-        assist_skl_tag(skel_bin_path, skel_xml_path)
-
-        with open(skel_xml_path, "r", encoding="utf8") as sklxml:
-            skl_xml_str = sklxml.read()
-        mod_xml_str = mod_file.read()
-        
-        new_xml = get_remapped_xml(skl_xml_str, mod_xml_str)
-        with open(tmp_mod_xml_path, "w") as tmpxml:
-            tmpxml.write(new_xml)
-
-        assist_skl_anim_pack(tmp_mod_xml_path, tmp_mod_bin_path)
-
-        with open(tmp_mod_bin_path, "rb") as modbin:
-            new_havok = modbin.read()
-
-        pre_havok = bytearray(orig_pap_data[:pap_hdr["havok_offset"]])
-        new_timeline_offset = len(pre_havok) + len(new_havok)
-        offs_bytes = new_timeline_offset.to_bytes(4, "little")
-        for i in range(4):
-            pre_havok[22 + i] = offs_bytes[i]
-
-        post_havok = orig_pap_data[pap_hdr["timeline_offset"]:]
-
-        with open(out_path, "wb") as out:
-            out.write(pre_havok)
-            out.write(new_havok)
-            out.write(post_havok)
-        print(f"Wrote new pap to {out_path}!")
-
-def multi_repack(skeleton_file : str, anim_file : str, mod_file : str, anim_index, out_path : str, additive : bool):
+def multi_repack(skeleton_file : str, anim_file : str, mod_file : str, anim_index, out_path : str, additive : bool=False, compress : bool=False):
     with open(skeleton_file, "rb") as s:
         orig_sklb_data = s.read()
     with open(anim_file, "rb") as a:
@@ -376,6 +275,8 @@ def multi_repack(skeleton_file : str, anim_file : str, mod_file : str, anim_inde
 
         if additive: 
             assist_blend(tmp_mod_path,tmp_mod_path)
+        if compress:
+            assist_compress(tmp_mod_path,tmp_mod_path)
         
         assist_repack(tmp_mod_path,tmp_pap_path,str(anim_index),tmp_out_bin_path)
         
@@ -401,29 +302,6 @@ def multi_repack(skeleton_file : str, anim_file : str, mod_file : str, anim_inde
                 out.write(post_havok)
             print(f"Wrote new pap to {out_path}!")
             
-def get_remapped_xml(skl_xml: str, skl_anim_xml: str) -> list:
-    sk_soup = BeautifulSoup(skl_xml, features="html.parser")
-    anim_soup = BeautifulSoup(skl_anim_xml, features="html.parser")
-
-    sk_bones = sk_soup.find("hkparam", {"name": "bones"}).find_all("hkparam", {"name": "name"})
-    base_bonemap = list(map(lambda x: x.text, sk_bones))
-
-    anim_bones = anim_soup.find("hkparam", {"name": "annotationTracks"}).find_all("hkparam", {"name": "trackName"})
-    anim_bonemap = list(map(lambda x: x.text, anim_bones))
-    
-    new_bonemap = []
-    for i in range(len(anim_bonemap)):
-        search_bone = anim_bonemap[i]
-        for i, bone in enumerate(base_bonemap):
-            if bone == search_bone:
-                new_bonemap.append(i)
-                break
-    bonemap_str = ' '.join(str(x) for x in new_bonemap)
-    dbgprint(f"New bonemap is: {bonemap_str}")
-
-    tt_element = anim_soup.find("hkparam", {"name": "transformTrackToBoneIndices"})
-    return str(skl_anim_xml, encoding="utf8").replace(tt_element.text, bonemap_str)
-
 SKLB_HDR_1 = ['magic', 'version', 'offset1', 'havok_offset', 'skele_id', 'other_ids']
 def read_sklb_header_1(sklb_data) -> dict:
     # 4 byte magic
@@ -613,8 +491,14 @@ class GUI:
         self.config.set('SETTINGS','export_type', str(self.EXPORT_TYPES.index(dpg.get_value("settings_export_type"))))
         self.config.write(open('config.ini', 'w'))          
 
-    def _file_handler(self, sender, app_data, user_data):
-        dpg.set_value(user_data, app_data['file_path_name'])
+    def _get_file(self, file_types, output_tag):
+        file = fd.askopenfilename(filetypes=file_types)
+        dpg.set_value(output_tag, file)
+
+    def _get_folder(self,output_tag):
+        folder = fd.askdirectory()
+        dpg.set_value(output_tag, folder)
+
 
     def _populate_anims(self, sender, app_data, user_data):
         if dpg.get_value(user_data['pap_input']) == "" or dpg.get_value(user_data['sklb_input']) == "":
@@ -687,12 +571,12 @@ class GUI:
                 with dpg.group(horizontal=True):
                     #dpg.add_text("None selected", tag="selected_pap_status")
                     dpg.add_input_text(tag="selected_pap", callback=self._clear_anims, user_data={"output":"anim_list"})
-                    dpg.add_button(label="...", callback=lambda: dpg.show_item("anim_dialog"))
+                    dpg.add_button(label="...", callback=lambda: self._get_file([("XIV animation file", "*.pap")], "selected_pap"))
                 dpg.add_text("Select .sklb:")
                 with dpg.group(horizontal=True):
                     #dpg.add_text("None selected", tag="selected_sklb_status")
                     dpg.add_input_text(label="", tag="selected_sklb")
-                    dpg.add_button(label="...", callback=lambda: dpg.show_item("sklb_dialog"))
+                    dpg.add_button(label="...", callback=lambda: self._get_file([("XIV skeleton file", "*.sklb")], "selected_sklb"))
                 with dpg.group(horizontal=True):
                     dpg.add_button(label="Submit", callback=self._populate_anims, user_data={"output" : "anim_list", "pap_input":"selected_pap", "sklb_input":"selected_sklb"})
                     dpg.add_button(label="Copy Repack Tab", callback=lambda: self._copy_tab("repack"))
@@ -717,7 +601,7 @@ class GUI:
                 dpg.add_text("Export directory: ")
                 with dpg.group(horizontal=True):
                     dpg.add_input_text(label="", tag="export_directory", default_value=self._get_config('SETTINGS', 'export_location'))
-                    dpg.add_button(label="...", callback=lambda: dpg.show_item("dir_dialog"))
+                    dpg.add_button(label="...", callback=lambda: self._get_folder("export_directory"))
                 with dpg.group(horizontal=True):
                     dpg.add_button(label="Export", callback=self._export_callback) 
                     dpg.add_loading_indicator(color=(169, 127, 156),secondary_color=(66, 49, 61),style=1, radius=1.2, show=False, tag="loading_export")
@@ -747,7 +631,7 @@ class GUI:
 
         self.start_loading()
         try:
-            path = dpg.get_value("export_directory")+"\\"+dpg.get_value("name")+dpg.get_value("extension")
+            path = dpg.get_value("export_directory")+"/"+dpg.get_value("name")+dpg.get_value("extension")
             if os.path.exists(path) and self._get_config('SETTINGS', 'export_iteration', True):
                 path = self._file_iteration(path)
             export(dpg.get_value("selected_sklb"), dpg.get_value("selected_pap"), self.anims.index(dpg.get_value("anim_list")), path,self._get_ft())
@@ -767,7 +651,7 @@ class GUI:
         
         self.start_loading()
         try:
-            path = dpg.get_value("reexport_directory")+"\\"+dpg.get_value("rename")+".pap"
+            path = dpg.get_value("reexport_directory")+"/"+dpg.get_value("rename")+".pap"
             if os.path.exists(path) and self._get_config('SETTINGS', 'export_iteration', True):
                 path = self._file_iteration(path)
             multi_repack(dpg.get_value("selected_resklb"),
@@ -775,7 +659,8 @@ class GUI:
                         dpg.get_value("selected_fbx"), 
                         self.reanims.index(dpg.get_value("reanim_list")), 
                         path,  
-                        dpg.get_value("additive_setting"))
+                        dpg.get_value("additive_setting"),
+                        dpg.get_value("compress_setting"))
             self._success_check(path)
         except Exception as e:
             print(e)
@@ -787,15 +672,15 @@ class GUI:
             dpg.add_text("Select .pap:")
             with dpg.group(horizontal=True):
                 dpg.add_input_text(tag="selected_repap", callback=self._clear_anims, user_data={"output":"reanim_list"})
-                dpg.add_button(label="...", callback=lambda: dpg.show_item("reanim_dialog"))
+                dpg.add_button(label="...", callback=lambda: self._get_file([("XIV animation file", "*.pap")], "selected_repap"))
             dpg.add_text("Select .sklb:")
             with dpg.group(horizontal=True):
                 dpg.add_input_text(tag="selected_resklb")
-                dpg.add_button(label="...", callback=lambda: dpg.show_item("resklb_dialog"))
+                dpg.add_button(label="...", callback=lambda: self._get_file([("XIV skeleton file", "*.sklb")], "selected_resklb"))
             dpg.add_text("Select .fbx or HavokMax .hka/.hkx/.hkt:")
             with dpg.group(horizontal=True):
                 dpg.add_input_text(tag="selected_fbx")
-                dpg.add_button(label="...", callback=lambda: dpg.show_item("fbx_dialog"))
+                dpg.add_button(label="...", callback=lambda: self._get_file([("Edited animation", "*.fbx *.hkx *.hka *.hkt")], "selected_fbx"))
             with dpg.group(horizontal=True):
                 dpg.add_button(label="Submit", callback=self._populate_anims, user_data={"output" : "reanim_list", "pap_input":"selected_repap", "sklb_input":"selected_resklb"})
                 dpg.add_button(label="Copy Extract Tab", callback=lambda: self._copy_tab("extract"))
@@ -804,11 +689,12 @@ class GUI:
                 dpg.add_text("Select Animation")
                 dpg.add_radio_button(tag="reanim_list", label="radio", default_value=0)
             with dpg.child_window(autosize_y=True, autosize_x=True, tag="reexport_window"):
-                dpg.add_text("Export Options")
-                with dpg.group(horizontal=True):    
-                    dpg.add_checkbox(label="Additive (EXPERIMENTAL)", tag="additive_setting")
-                    # Add additional settings
-                    # Additive may eventually be a "AUTO/YES/NO" combo
+                dpg.add_text("Repack Options")
+                with dpg.group(horizontal=True):   
+                    dpg.add_checkbox(label="Compress", tag="compress_setting") 
+                    dpg.add_button(label="?", callback=lambda:self.show_info("Info","Compression provides file size reduction at the cost of some detail. \nMultiAssist uses predictive compression whereas XIV animations are spline compressed. \nSpline compression animations often don't function as expected."))
+                    dpg.add_checkbox(label="Additive (PROTOTYPE)", tag="additive_setting")
+                    dpg.add_button(label="?", callback=lambda:self.show_info("Info","Additive animation will not function with non-edited hkx animations. \nFurthermore, the implementation is different to that within XIV. \nRe-importing edited additive animations will also likely not function as expected."))
                 dpg.add_text("Name:")
                 with dpg.group(horizontal=True):                    
                     dpg.add_input_text(tag="rename")
@@ -816,7 +702,7 @@ class GUI:
                 dpg.add_text("Export directory: ")
                 with dpg.group(horizontal=True):
                     dpg.add_input_text(label="", tag="reexport_directory", default_value=self._get_config('SETTINGS', 'export_location'))
-                    dpg.add_button(label="...", callback=lambda: dpg.show_item("redir_dialog"))
+                    dpg.add_button(label="...", callback=lambda: self._get_folder("reexport_directory"))
                 with dpg.group(horizontal=True):
                     dpg.add_button(label="Repack", callback=self._repack_callback)
                     dpg.add_loading_indicator(color=(169, 127, 156),secondary_color=(66, 49, 61),style=1, radius=1.2, show=False, tag="loading_repack")
@@ -874,28 +760,6 @@ class GUI:
         
     def _run(self):
         dpg.create_context()
-
-        # surely there's a better way to make these dialogs lol
-        # also these suck i'll just replace them with tkinter dialogs eventually
-        with dpg.file_dialog(directory_selector=False, show=False, tag="anim_dialog", modal=True, height=300, callback=self._file_handler, user_data="selected_pap"):
-            dpg.add_file_extension(".pap", color=(0, 255, 0, 255))
-            dpg.add_file_extension(".hkx", color=(0, 255, 0, 255))
-        
-        with dpg.file_dialog(directory_selector=False, show=False, tag="sklb_dialog", modal=True, height=300, callback=self._file_handler, user_data="selected_sklb"):
-            dpg.add_file_extension(".sklb", color=(0, 255, 0, 255))
-        
-        with dpg.file_dialog(directory_selector=False, show=False, tag="reanim_dialog", modal=True, height=300, callback=self._file_handler, user_data="selected_repap"):
-            dpg.add_file_extension(".pap", color=(0, 255, 0, 255))
-        
-        with dpg.file_dialog(directory_selector=False, show=False, tag="resklb_dialog", modal=True, height=300, callback=self._file_handler, user_data="selected_resklb"):
-            dpg.add_file_extension(".sklb", color=(0, 255, 0, 255))
-
-        with dpg.file_dialog(directory_selector=False, show=False, tag="fbx_dialog", modal=True, height=300, callback=self._file_handler, user_data="selected_fbx"):
-            dpg.add_file_extension("Anim files (*.fbx *.hkx *.hka *.hkt){.fbx,.hkx,.hka,.hkt}", color=(0, 255, 0, 255)) # Colour doesn't function
-
-        dpg.add_file_dialog(directory_selector=True, show=False, tag="dir_dialog", modal=True, height=300, callback=lambda a, b:dpg.set_value("export_directory", b['file_path_name']))
-        dpg.add_file_dialog(directory_selector=True, show=False, tag="redir_dialog", modal=True, height=300, callback=lambda a, b:dpg.set_value("reexport_directory", b['file_path_name']))
-
         
         with dpg.window(tag="Primary Window"):
             with dpg.menu_bar():
@@ -910,7 +774,9 @@ class GUI:
                     
                     dpg.add_combo(default_value=export_type , tag="settings_export_type", items=self.EXPORT_TYPES)
                     dpg.add_text("\nDefault export directory:")
-                    dpg.add_input_text(default_value=self._get_config('SETTINGS','export_location'), tag="settings_export_location")
+                    with dpg.group(horizontal=True):
+                        dpg.add_input_text(default_value=self._get_config('SETTINGS','export_location'), tag="settings_export_location")
+                        dpg.add_button(label="...", callback=lambda: self._get_folder("settings_export_location"))
                         
                     dpg.add_button(label="Save settings", callback=lambda:self._save_settings())
 
@@ -951,15 +817,10 @@ def main():
     if args.command == "extract":
         export(args.skeleton_file, args.pap_file, args.anim_index, args.out_file, args.file_type)
     elif args.command == "pack":
-        multi_repack(args.skeleton_file, args.pap_file, args.anim_file, args.anim_index, args.out_file)
-    elif args.command == "aextract":
-        extract(args.skeleton_file, args.pap_file, args.out_file)
-    elif args.command == "apack":
-        repack(args.skeleton_file, args.pap_file, args.anim_file, args.out_file)
+        multi_repack(args.skeleton_file, args.pap_file, args.anim_file, args.anim_index, args.out_file, args.blend)
     else:
         global gui
         gui = GUI()
-
 
 if __name__ == "__main__":
     main()
