@@ -315,7 +315,7 @@ bool CreateScene(FbxManager* pSdkManager, FbxScene* pScene)
     sceneInfo->mRevision = "rev. 1.0";
     sceneInfo->mKeywords = "havok animation";
     sceneInfo->mComment = "no particular comments required.";
-    pScene->GetGlobalSettings().SetTimeMode(FbxTime::eCustom);
+    pScene->GetGlobalSettings().SetTimeMode(FbxTime::eFrames30);
     pScene->GetGlobalSettings().SetCustomFrameRate(30.0);
     //pScene->GetGlobalSettings().SetSystemUnit(FbxSystemUnit::m);
     //pScene->GetGlobalSettings().SetOriginalSystemUnit(FbxSystemUnit::cm);
@@ -436,7 +436,7 @@ void AnimateSkeleton(FbxScene* pScene) {
         const int numBones = skeleton->m_bones.getSize();
 
         int FrameNumber = animations[a]->getNumOriginalFrames();
-		int TrackNumber = numBones;
+		int TrackNumber = numBones-1;
         int FloatNumber = animations[a]->m_numberOfFloatTracks;
         hkReal incrFrame = animations[a]->m_duration / (hkReal)(FrameNumber - 1);
 
@@ -482,7 +482,8 @@ void AnimateSkeleton(FbxScene* pScene) {
             // loop through animated bones
             for (int i = 0; i < TrackNumber; ++i) {
 				
-                FbxNode* CurrentJointNode = pScene->GetNode(BoneIDContainer[i]);
+                // i+1 to skip root node
+                FbxNode* CurrentJointNode = pScene->GetNode(BoneIDContainer[i+1]);
 
                 //if (std::string(skeleton->m_bones[i].m_name).find("sippo") != std::string::npos) {
                 //    std::cout << "\n Bone:" << skeleton->m_bones[i].m_name << " ID: " << BoneIDContainer[i] << "\n";
@@ -507,7 +508,7 @@ void AnimateSkeleton(FbxScene* pScene) {
                 FbxAnimCurve* lCurve_Scal_Y = CurrentJointNode->LclScaling.GetCurve(lAnimLayer, FBXSDK_CURVENODE_COMPONENT_Y, pCreate);
                 FbxAnimCurve* lCurve_Scal_Z = CurrentJointNode->LclScaling.GetCurve(lAnimLayer, FBXSDK_CURVENODE_COMPONENT_Z, pCreate);
 
-                hkQsTransform transform = transforms[i];
+                hkQsTransform transform = transforms[i+1];
                 const hkVector4 anim_pos = transform.getTranslation();
                 const hkQuaternion anim_rot = transform.getRotation();
                 const hkVector4f anim_scal = transform.getScale();

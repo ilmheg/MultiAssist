@@ -348,7 +348,7 @@ void CreateAnimFromStack(FbxScene* pScene, FbxAnimStack* stack, int stackNum, hk
 	//    int numTracks = pScene->GetSrcObjectCount<FbxNode>();
 	//    int numTracks = skeleton->m_bones.getSize();
 	//int numTracks = bindings[stackNum]->m_transformTrackToBoneIndices.getSize();
-	int numTracks = skeleton->m_bones.getSize();
+	int numTracks = skeleton->m_bones.getSize()-1;
 	float duration = (float)stack->GetReferenceTimeSpan().GetDuration().GetSecondDouble();
 	float frametime = (1.0 / 30);   //always 30fps
 	int numFrames = (int)(duration / frametime);
@@ -365,11 +365,11 @@ void CreateAnimFromStack(FbxScene* pScene, FbxAnimStack* stack, int stackNum, hk
 	hkArray<hkInt16> newTransformTrack;
 	newTransformTrack.setSize(numTracks);
 
-	auto BoneIDContainer = new FbxNode * [numTracks];
-	for (int y = 0; y < numTracks; y++) {
-		short currentBoneIndex = bindings[stackNum]->m_transformTrackToBoneIndices[y];
+	auto BoneIDContainer = new FbxNode * [skeleton->m_bones.getSize()];
+	for (int y = 0; y < skeleton->m_bones.getSize(); y++) {
 		const char* CurrentBoneName = skeleton->m_bones[y].m_name;
 		std::string CurBoneNameString = CurrentBoneName;
+        std::cout << CurBoneNameString;
 		BoneIDContainer[y] = GetNodeIndexByName(pScene, CurrentBoneName);
 		newTransformTrack[y] = y;
 	}
@@ -386,14 +386,13 @@ void CreateAnimFromStack(FbxScene* pScene, FbxAnimStack* stack, int stackNum, hk
 		currentFbxTime.SetSecondDouble(time);
 
 		for (int track = 0; track < numTracks; track++) {
-			FbxNode* node = BoneIDContainer[track];
+			FbxNode* node = BoneIDContainer[track+1];
 			FbxAMatrix local = evaluator->GetNodeLocalTransform(node, currentFbxTime);
 
 			hkQsTransform* hkLocal = ConvertTransform(&local);
 			const hkVector4& t = hkLocal->getTranslation();
 			const hkQuaternion& r = hkLocal->getRotation();
 			const hkVector4& s = hkLocal->getScale();
-			std::cout << frame * numTracks + track << "\n";
 			anim->m_transforms[frame * numTracks + track].set(t, r, s);
 		}
 	}
@@ -411,8 +410,9 @@ void CreateAnimFromStack(FbxScene* pScene, FbxAnimStack* stack, int stackNum, hk
 
 		// copy transform track to bone indices
 		for (int t = 0; t < numTracks; t++)
-			newBinding->m_transformTrackToBoneIndices.pushBack(newTransformTrack[t]);
+			newBinding->m_transformTrackToBoneIndices.pushBack(newTransformTrack[t+1]);
 		newBinding->m_originalSkeletonName = bindings[stackNum]->m_originalSkeletonName;
+        
 	}
 
 	animCont->m_animations.pushBack(newBinding->m_animation);
