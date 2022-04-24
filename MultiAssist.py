@@ -780,7 +780,7 @@ class GUI:
                         
                     dpg.add_button(label="Save settings", callback=lambda:self._save_settings())
 
-                dpg.add_menu_item(label="Help", callback=lambda:webbrowser.open('https://github.com/ilmheg/MultiAssist/blob/main/README.md'))
+                dpg.add_menu_item(label="Wiki", callback=lambda:webbrowser.open('https://github.com/ilmheg/MultiAssist/wiki/2.-Using-MultiAssist'))
                 dpg.add_menu_item(label="                               ", enabled=False) # one right align pls
                 dpg.add_menu_item(label="Alternative Blender Addon (by 0ceal0t)", callback=lambda:webbrowser.open('https://github.com/0ceal0t/BlenderAssist'))
             with dpg.group(horizontal=True):

@@ -84,9 +84,9 @@ int main(int argc, const char** argv) {
     // 3 = skl + anim -> out hk*
     // 4 = skl + anim -> xml packfile
     // 5 = xml packfile of anim -> binary tagfile
-	// 6 = skl + anim - > binary tagfile
-	// 7 = anim - > additive tagfile
-	// 8 = mod_anim + anim - > binary tagfile
+    // 6 = skl + anim - > binary tagfile
+    // 7 = anim - > additive tagfile
+    // 8 = mod_anim + anim - > binary tagfile
     // 9 = anim - > predictive compressed animation tagfile
     int mode = _wtoi(nargv[1]);
 
@@ -188,7 +188,7 @@ int main(int argc, const char** argv) {
         rinput.m_numTransformTrackToBoneIndices = bind_ptr->m_transformTrackToBoneIndices.getSize();
         */
 
-		hkaAdditiveAnimationUtility::Input input;
+        hkaAdditiveAnimationUtility::Input input;
         input.m_numberOfPoses = w->m_transforms.getSize() / w->m_numberOfTransformTracks; //frames
         input.m_numberOfTransformTracks = w->m_numberOfTransformTracks;
         input.m_originalData = w->m_transforms.begin();
@@ -217,12 +217,9 @@ int main(int argc, const char** argv) {
         res = hkSerializeUtil::saveTagfile(anim_root_container, hkRootLevelContainer::staticClass(), stream.getStreamWriter(), nullptr, hkSerializeUtil::SAVE_DEFAULT);
     } else if (mode == 9) {
         auto* anim_container = reinterpret_cast<hkaAnimationContainer*>(anim_root_container->findObjectByType(hkaAnimationContainerClass.getName()));
-        hkaAnimation* anim_ptr = anim_container->m_animations[0];
         auto binding_ptr = anim_container->m_bindings[0];
         auto binding = *anim_container->m_bindings[0];
         auto skl = *anim_container->m_skeletons[0];
-        hkaInterleavedUncompressedAnimation* uncompressed_anim = static_cast<hkaInterleavedUncompressedAnimation*>(anim_ptr);
-        
 
         /*
         hkaPredictiveCompressedAnimation::TrackCompressionParams track_params;
