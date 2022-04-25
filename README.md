@@ -2,7 +2,6 @@
 # MultiAssist
 <p>
 <img align="right" width="300" src="https://user-images.githubusercontent.com/103583531/164975695-d08aa30d-5bb8-403b-b4bb-927dadeb906a.png" />
-Upon opening MultiAssist, you'll see the MultiAssist GUI with the "Extract" tab selected. You can resize this window however you like, however it was designed for use at its default size.
 </p>
 
 [AnimAssist](https://github.com/lmcintyre/AnimAssist) GUI with support for repacking .pap files with multiple animations, minor bug fixes, and more extensive export options, including FBX. It can also be used without the GUI through command line arguments. 
