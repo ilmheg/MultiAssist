@@ -352,7 +352,8 @@ void CreateAnimFromStack(FbxScene* pScene, FbxAnimStack* stack, int stackNum, hk
 	float duration = (float)stack->GetReferenceTimeSpan().GetDuration().GetSecondDouble();
 	float frametime = (1.0 / 30);   //always 30fps
 	int numFrames = (int)(duration / frametime);
-
+    frametime = (float)duration / (numFrames - 1);
+    std::cout << "\n\nFRAMES: " << numFrames << "\n\n";
 	hkRefPtr<hkaInterleavedUncompressedAnimation> anim = new hkaInterleavedUncompressedAnimation();
 	anim->m_duration = duration;
 	anim->m_numberOfTransformTracks = numTracks;
@@ -369,7 +370,6 @@ void CreateAnimFromStack(FbxScene* pScene, FbxAnimStack* stack, int stackNum, hk
 	for (int y = 0; y < skeleton->m_bones.getSize(); y++) {
 		const char* CurrentBoneName = skeleton->m_bones[y].m_name;
 		std::string CurBoneNameString = CurrentBoneName;
-        std::cout << CurBoneNameString;
 		BoneIDContainer[y] = GetNodeIndexByName(pScene, CurrentBoneName);
 		newTransformTrack[y] = y;
 	}

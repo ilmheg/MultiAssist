@@ -493,11 +493,11 @@ class GUI:
 
     def _get_file(self, file_types, output_tag):
         file = fd.askopenfilename(filetypes=file_types)
-        dpg.set_value(output_tag, file)
+        if file!= "": dpg.set_value(output_tag, file)
 
     def _get_folder(self,output_tag):
         folder = fd.askdirectory()
-        dpg.set_value(output_tag, folder)
+        if folder!= "": dpg.set_value(output_tag, folder)
 
 
     def _populate_anims(self, sender, app_data, user_data):
@@ -707,10 +707,24 @@ class GUI:
                     dpg.add_button(label="Repack", callback=self._repack_callback)
                     dpg.add_loading_indicator(color=(169, 127, 156),secondary_color=(66, 49, 61),style=1, radius=1.2, show=False, tag="loading_repack")
 
-    def _pap_editor_window(self):
-        with dpg.child_window(autosize_x=True, height=95):
-            dpg.add_text("Warning! This feature is in its early stages and may not work as intended.\nWarning! This feature only supports .pap files with a single animation.", color=(255,0,0))
-            dpg.add_text("The Timeline Editor assists with editing the \"header\" and \"timeline\" sections of .pap files, which contains information such as when and what expressions are played.",wrap=500)
+    def _skeleton_window(self):
+        with dpg.child_window(autosize_x=True):
+            with dpg.group(horizontal=True):
+                dpg.add_radio_button(horizontal=True, items=["Export .sklb to FBX", "Generate .sklb from FBX"])
+        
+            
+            dpg.add_text("Select .sklb")
+            with dpg.group(horizontal=True):
+                dpg.add_input_text()
+                dpg.add_button(label="...", callback=lambda: self._get_file([("XIV skeleton file", "*.sklb")], "selected_resklb"))
+            
+            dpg.add_text("Name")
+            with dpg.group(horizontal=True):
+                dpg.add_input_text()
+            dpg.add_text("Destination Folder")
+            with dpg.group(horizontal=True):
+                dpg.add_input_text()
+                dpg.add_button(label="...", callback=lambda: self._get_file([("XIV skeleton file", "*.sklb")], "selected_resklb"))
 
     def _set_theme(self):
         accent_light = (239, 179, 221)
@@ -779,10 +793,10 @@ class GUI:
                         dpg.add_button(label="...", callback=lambda: self._get_folder("settings_export_location"))
                         
                     dpg.add_button(label="Save settings", callback=lambda:self._save_settings())
-
-                dpg.add_menu_item(label="Wiki", callback=lambda:webbrowser.open('https://github.com/ilmheg/MultiAssist/wiki/2.-Using-MultiAssist'))
-                dpg.add_menu_item(label="                               ", enabled=False) # one right align pls
-                dpg.add_menu_item(label="Alternative Blender Addon (by 0ceal0t)", callback=lambda:webbrowser.open('https://github.com/0ceal0t/BlenderAssist'))
+                dpg.add_menu_item(label="Wiki", callback=lambda:webbrowser.open('https://github.com/ilmheg/MultiAssist/wiki'))
+                dpg.add_menu_item(label="0ceal0t's BlenderAssist", callback=lambda:webbrowser.open('https://github.com/0ceal0t/BlenderAssist/tree/main/BlenderAssist'))
+                dpg.add_menu_item(label="                           ", enabled=False) # one right align pls
+                dpg.add_menu_item(label="Report an Issue!", callback=lambda:webbrowser.open('https://github.com/ilmheg/MultiAssist/issues'))
             with dpg.group(horizontal=True):
                 dpg.add_text("MultiAssist")
             
@@ -791,8 +805,8 @@ class GUI:
                     self._export_window()
                 with dpg.tab(label='Repack'):   
                     self._repack_window()
-                # with dpg.tab(label='Timeline Editor'): 
-                #     self._pap_editor_window()  
+                #with dpg.tab(label='Skeleton Tools'): 
+                #     self._skeleton_window()  
 
         self._set_theme()
 
