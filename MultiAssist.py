@@ -140,9 +140,9 @@ def assist_combine_tag(skeleton_path, animation_path, animation_index, out_path)
     else:
         dbgprint(f"Saved importable file to {out_path}")
 
-def assist_blend(animation_path, out_path):
+def assist_blend(skl_path, animation_path, out_path):
     animassist_check()
-    complete = subprocess.run(["animassist.exe", "7",  animation_path, out_path], capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
+    complete = subprocess.run(["animassist.exe", "7", skl_path, animation_path, out_path], capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
     dbgprint(f"{complete.returncode}")
     dbgprint(f"{complete.stdout}")
 
@@ -162,9 +162,9 @@ def assist_repack(mod_path, animation_path, animation_index, out_path):
     else:
         dbgprint(f"Saved importable file to {out_path}")
 
-def assist_compress(animation_path, out_path):
+def assist_compress(skl_path,animation_path, out_path):
     animassist_check()
-    complete = subprocess.run(["animassist.exe", "9", animation_path, out_path], capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
+    complete = subprocess.run(["animassist.exe", "9", skl_path, animation_path, out_path], capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
     dbgprint(f"{complete.returncode}")
     dbgprint(f"{complete.stdout}")
 
@@ -293,9 +293,9 @@ def multi_repack(skeleton_file : str, anim_file : str, mod_file : str, anim_inde
             tmp_mod_path = tmp_fbx_path
 
         if additive: 
-            assist_blend(tmp_mod_path,tmp_mod_path)
+            assist_blend(tmp_skel_path,tmp_mod_path,tmp_mod_path)
         if compress:
-            assist_compress(tmp_mod_path,tmp_mod_path)
+            assist_compress(tmp_skel_path,tmp_mod_path,tmp_mod_path)
         
         assist_repack(tmp_mod_path,tmp_pap_path,str(anim_index),tmp_out_bin_path)
         

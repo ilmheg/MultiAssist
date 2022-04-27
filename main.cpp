@@ -100,12 +100,12 @@ int main(int argc, const char** argv) {
         anim_index = _wtoi(nargv[4]);
         out = convert_from_wstring(nargv[5]).c_str();
     }
-    if (mode == 4) {
+    if (mode == 4 || mode == 7 || mode == 9) {
         skl_hkt = convert_from_wstring(nargv[2]).c_str();
         anim_hkt = convert_from_wstring(nargv[3]).c_str();
         out = convert_from_wstring(nargv[4]).c_str();
     }
-    if (mode == 5 || mode == 7 || mode == 9) {
+    if (mode == 5 ) {
         anim_hkt = convert_from_wstring(nargv[2]).c_str();
         out = convert_from_wstring(nargv[3]).c_str();
     }
@@ -115,7 +115,7 @@ int main(int argc, const char** argv) {
     init();
     auto loader = new hkLoader();
 
-    if (mode == 1 || mode == 2 || mode == 3 || mode == 6) {
+    if (mode == 1 || mode == 2 || mode == 3 || mode == 6 || mode == 7 || mode == 9) {
         skl_root_container = loader->load(skl_hkt);
     }
     if (mode == 3 || mode == 4 || mode == 6 ) {
@@ -167,17 +167,14 @@ int main(int argc, const char** argv) {
     } else if (mode == 5) {
         res = hkSerializeUtil::saveTagfile(anim_root_container, hkRootLevelContainer::staticClass(), stream.getStreamWriter(), nullptr, hkSerializeUtil::SAVE_DEFAULT);
     } else if (mode == 7) {
-
+        auto* skl_container = reinterpret_cast<hkaAnimationContainer*>(skl_root_container->findObjectByType(hkaAnimationContainerClass.getName()));
         hkaAnimationContainer* anim_container = reinterpret_cast<hkaAnimationContainer*>(anim_root_container->findObjectByType(hkaAnimationContainerClass.getName()));;
         hkaAnimation* anim_ptr = anim_container->m_animations[0];
         auto bind_ptr = anim_container->m_bindings[0];
         auto binding_ref = hkRefPtr<hkaAnimationBinding>(bind_ptr);
-        auto skl_ptr = anim_container->m_skeletons[0];
+        auto skl_ptr = skl_container->m_skeletons[0];
         hkaInterleavedUncompressedAnimation* w = static_cast<hkaInterleavedUncompressedAnimation*>(anim_ptr);
-        
-        std::cout << bind_ptr->m_transformTrackToBoneIndices.getSize();
-        
-        /*
+
         hkaAdditiveAnimationUtility::ReferencePoseInput rinput;
         rinput.m_originalData = w->m_transforms.begin();
         rinput.m_numberOfPoses = w->m_transforms.getSize() / w->m_numberOfTransformTracks;
@@ -186,24 +183,23 @@ int main(int argc, const char** argv) {
         rinput.m_numReferencePose = skl_ptr->m_referencePose.getSize();
         rinput.m_transformTrackToBoneIndices = bind_ptr->m_transformTrackToBoneIndices.begin();
         rinput.m_numTransformTrackToBoneIndices = bind_ptr->m_transformTrackToBoneIndices.getSize();
-        */
-
+        /*
         hkaAdditiveAnimationUtility::Input input;
         input.m_numberOfPoses = w->m_transforms.getSize() / w->m_numberOfTransformTracks; //frames
         input.m_numberOfTransformTracks = w->m_numberOfTransformTracks;
         input.m_originalData = w->m_transforms.begin();
         input.m_baseData = skl_ptr->m_referencePose.begin();
-        
-        hkaAdditiveAnimationUtility::createAdditiveFromPose(input, w->m_transforms.begin());
+        */
+        hkaAdditiveAnimationUtility::createAdditiveFromReferencePose(rinput, w->m_transforms.begin());
         
         /// Note: For deprecated format, uncomment the define HKA_USE_ADDITIVE_DEPRECATED in hkaAnimation.h
         /// also remember to set hkaAnimationBinding::ADDITIVE_DEPRECATED
         /// Couldn't get results from ADDITVE_DEPRECATED, ADDITIVE works in XIV, so here we are
         /// Source\Animation\Animation\hkaAnimation.h Line #18
         binding_ref->m_blendHint = hkaAnimationBinding::ADDITIVE;
-        
         anim_container->m_animations[0] = w;
         anim_container->m_bindings[0] = binding_ref;
+
         res = hkSerializeDeprecated::getInstance().saveXmlPackfile(anim_root_container, hkRootLevelContainer::staticClass(), stream.getStreamWriter(), packOptions, nullptr, &errOut);
     } else if (mode == 8) {
         hkaAnimationContainer* anim_container = reinterpret_cast<hkaAnimationContainer*>(anim_root_container->findObjectByType(hkaAnimationContainerClass.getName()));
@@ -216,10 +212,12 @@ int main(int argc, const char** argv) {
         anim_container->m_bindings[anim_index] = mod_binding_ptr;
         res = hkSerializeUtil::saveTagfile(anim_root_container, hkRootLevelContainer::staticClass(), stream.getStreamWriter(), nullptr, hkSerializeUtil::SAVE_DEFAULT);
     } else if (mode == 9) {
+        auto* skl_container = reinterpret_cast<hkaAnimationContainer*>(skl_root_container->findObjectByType(hkaAnimationContainerClass.getName()));
+        auto skl = *skl_container->m_skeletons[0];
+
         auto* anim_container = reinterpret_cast<hkaAnimationContainer*>(anim_root_container->findObjectByType(hkaAnimationContainerClass.getName()));
         auto binding_ptr = anim_container->m_bindings[0];
         auto binding = *anim_container->m_bindings[0];
-        auto skl = *anim_container->m_skeletons[0];
 
         /*
         hkaPredictiveCompressedAnimation::TrackCompressionParams track_params;
@@ -234,13 +232,9 @@ int main(int argc, const char** argv) {
         track_params.m_staticTranslationTolerance = 0.005;
         params.m_parameterPalette[0] = track_params;
         */
-        
         auto compressed_anim = new hkaPredictiveCompressedAnimation(binding, skl);
         anim_container->m_animations[0] = compressed_anim;
         binding_ptr->m_animation = compressed_anim;
-        std::cout << "\n\nSize:\n" << anim_container->m_animations.getSize();
-
-     
 
         res = hkSerializeDeprecated::getInstance().saveXmlPackfile(anim_root_container, hkRootLevelContainer::staticClass(), stream.getStreamWriter(), packOptions, nullptr, &errOut);
     }
