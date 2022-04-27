@@ -408,7 +408,7 @@ void CreateAnimFromStack(FbxScene* pScene, FbxAnimStack* stack, int stackNum, hk
         for (int t = 0; t < numTracks; t++) {
             newBinding->m_transformTrackToBoneIndices.pushBack(newTransformTrack[t + 1]);
         }
-        cout << "Binding Skeleton"
+        cout << "Binding Skeleton";
 		newBinding->m_originalSkeletonName = bindings[0]->m_originalSkeletonName;
         cout << "Skeleton Bound";
         

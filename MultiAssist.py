@@ -11,7 +11,7 @@ import errno
 from tkinter import filedialog as fd
 gui = 0
 
-debug = False
+debug = True
 def dbgprint(text: str) -> None:
     if debug:
         print(f"[dbg] {text}")
@@ -176,8 +176,8 @@ def assist_compress(animation_path, out_path):
 def to_hkx(skeleton_path, hkx_path, fbx_path, out_path) -> None:
     to_havok_check()
     complete = subprocess.run("fbx2havok.exe -hk_skeleton \"" + skeleton_path + "\" -hk_anim \"" + hkx_path + "\" -fbx " + fbx_path + " -hkout \"" + out_path +"\"", capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
-    print(f"{complete.stdout}")
-    print(f"{complete.returncode}")
+    dbgprint(f"{complete.stdout}")
+    dbgprint(f"{complete.returncode}")
     #print(f"{complete.stderr}")
     if not os.path.exists(out_path):
         print("fbx2havok operation failed.")
@@ -186,13 +186,11 @@ def to_hkx(skeleton_path, hkx_path, fbx_path, out_path) -> None:
 
 def to_fbx(skeleton_path, hkx_path, out_path):
     to_fbx_check()
-    complete = subprocess.run("tofbx.exe -hk_skeleton \"" + skeleton_path + "\" -hk_anim \"" + hkx_path + "\" -fbx \"" + out_path +"\"", capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
-    dbgprint(f"{complete.stdout}")
-    dbgprint(f"{complete.returncode}")
+    subprocess.check_call("tofbx.exe -hk_skeleton \"" + skeleton_path + "\" -hk_anim \"" + hkx_path + "\" -fbx \"" + out_path +"\"", stdout=sys.stdout, stderr=subprocess.STDOUT)
     if not os.path.exists(out_path):
         print("havok2fbx operation failed.")
     else:
-        print(f"Saved importable file to {out_path}")
+        dbgprint(f"Saved importable file to {out_path}")
        
 def export(skeleton_path, pap_path, anim_index, output_path, file_type):
 
@@ -215,7 +213,7 @@ def export(skeleton_path, pap_path, anim_index, output_path, file_type):
         anim_index = 0
 
     with tempfile.TemporaryDirectory() as tmp_folder:
-            tmp_output_bin_path = os.path.join(tmp_folder, "tmp_ouwut_bin")
+            tmp_out_bin_path = os.path.join(tmp_folder, "tmp_out_bin")
             tmp_skel_path = os.path.join(tmp_folder, "tmp_skel")
             tmp_anim_path = os.path.join(tmp_folder, "tmp_anim")
             tmp_skel_xml_path = os.path.join(tmp_folder, "tmp_skel_xml")
@@ -225,6 +223,7 @@ def export(skeleton_path, pap_path, anim_index, output_path, file_type):
             dbgprint(f"we have {tmp_anim_path} as tmp_anim")
             havok_skel = get_havok_from_sklb(sklb_data)
             havok_anim = get_havok_from_pap(pap_data)
+
             with open(tmp_skel_path, "wb") as tmp_skel:
                 tmp_skel.write(havok_skel)
             with open(tmp_anim_path, "wb") as tmp_anim:
@@ -233,13 +232,22 @@ def export(skeleton_path, pap_path, anim_index, output_path, file_type):
             if (file_type=="fbx"): 
                 print()
                 assist_combine_tag(tmp_skel_path, tmp_anim_path, str(anim_index), tmp_anim_bin_path)
-                to_fbx(tmp_skel_path,tmp_anim_bin_path,output_path)
+                to_fbx(tmp_skel_path,tmp_anim_bin_path,tmp_out_bin_path)
+                tmp_out_bin_path = tmp_out_bin_path + ".fbx" # i hate u
             elif (file_type=="hkxp"):
-                assist_combine(tmp_skel_path, tmp_anim_path, str(anim_index), output_path)
+                assist_combine(tmp_skel_path, tmp_anim_path, str(anim_index), tmp_out_bin_path)
             elif (file_type=="hkxt"):
-                assist_combine_tag(tmp_skel_path, tmp_anim_path, str(anim_index), output_path)
+                assist_combine_tag(tmp_skel_path, tmp_anim_path, str(anim_index), tmp_out_bin_path)
             elif (file_type=="xml"):
-                assist_xml(tmp_skel_path, tmp_anim_path, output_path)
+                assist_xml(tmp_skel_path, tmp_anim_path, tmp_out_bin_path)
+            
+            if(os.path.getsize(tmp_out_bin_path) == 0):
+                raise Exception("Size of temp file was 0")
+
+            with open(tmp_out_bin_path, "rb") as newbin:
+                data = newbin.read()
+            with open(output_path, "wb") as op_fbx:
+                op_fbx.write(data)
             
 
 def multi_repack(skeleton_file : str, anim_file : str, mod_file : str, anim_index, out_path : str, additive : bool=False, compress : bool=False):
@@ -306,12 +314,14 @@ def multi_repack(skeleton_file : str, anim_file : str, mod_file : str, anim_inde
         post_havok = orig_pap_data[pap_hdr["timeline_offset"]:]
 
         # Write .pap file
-        if os.path.getsize(tmp_out_bin_path) != 0:
-            with open(out_path, "wb") as out:
-                out.write(pre_havok)
-                out.write(new_havok)
-                out.write(post_havok)
-            print(f"Wrote new pap to {out_path}!")
+        if(os.path.getsize(tmp_out_bin_path) == 0):
+            raise Exception("Size of temp file was 0")
+
+        with open(out_path, "wb") as out:
+            out.write(pre_havok)
+            out.write(new_havok)
+            out.write(post_havok)
+        print(f"Wrote new pap to {out_path}!")
             
 SKLB_HDR_1 = ['magic', 'version', 'offset1', 'havok_offset', 'skele_id', 'other_ids']
 def read_sklb_header_1(sklb_data) -> dict:
@@ -471,7 +481,7 @@ class GUI:
             viewport_height = dpg.get_viewport_client_height()
 
             with dpg.window(label=title, modal=True, no_close=True) as modal_id:
-                dpg.add_text(message)
+                dpg.add_text(message, wrap=viewport_width-20)
                 dpg.add_button(label="Ok", width=75, user_data=(modal_id, True), callback=lambda:dpg.delete_item(modal_id))
 
         # guarantee these commands happen in another frame
@@ -620,9 +630,9 @@ class GUI:
     def _success_check(self, path):
         if not os.path.exists(path):
             dbgprint("No file was written")
-            self.show_info("Error!","No file was written, something went wrong.\n\nPlease ensure that input files are correct and you have\n permission to write to this export directory.")
-        elif os.path.getsize(path == 0):
-            self.show_info("Error!","A file was written but it is empty.\n\nPlease ensure input files are correct.")
+            self.show_info("Error!","No file was written, something went wrong. Please ensure that input files are correct and you have permission to write to this export directory.")
+        elif os.path.getsize(path) == 0:
+            self.show_info("Error!","A file was written but it is empty. Please ensure input files are correct.")
         else:
             dbgprint(f"Saved to {path}")
             self.show_info("Success!","You can find your exported file at:\n" + path)
@@ -655,9 +665,17 @@ class GUI:
             
             export(dpg.get_value("selected_sklb"), dpg.get_value("selected_pap"), self.anims.index(dpg.get_value("anim_list")), path,self._get_ft())
             self._success_check(path)
-        except Exception as e:
+        except IOError as e:
             print(e)
-            self.show_info("Error", "An error occurred within the extraction process. No file was written.\n\n"+repr(e))
+            if(e.errno == errno.EPERM or e.errno == errno.EACCES):
+                self.show_info("Error", "You do not have permission to write to that directory. No file was written.")
+            elif(e.errno == errno.EADDRINUSE):
+                self.show_info("Error", "The path you are writing to is in use. No file was written.")
+            else:
+                self.show_info("Error", "An IOError occured:\n\n"+e.strerror)
+        except Exception as err:
+            print(err)
+            self.show_info("Error", "An error occurred within the extraction process. No file was written.\n\n"+repr(err))
         self.stop_loading()
          
     def _repack_callback(self, sender, app_data):
