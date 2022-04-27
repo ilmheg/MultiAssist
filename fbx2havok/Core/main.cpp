@@ -225,6 +225,7 @@ int HK_CALL main(int argc, const char** argv)
 			}
 
 			if (((arg == "-hkout") || (arg == "--havokout") || (arg == "-o")) && bSkeletonIsValid) {
+                std::cout << bSkeletonIsValid;
 				if (i + 1 < argc) {
 					havokout = argv[i + 1];
 					std::cout << "HAVOK ANIMATION OUTPUT IS: " << havokout << "\n";
@@ -255,27 +256,22 @@ int HK_CALL main(int argc, const char** argv)
 		}
 
 		{
-			hkStringBuf assetFile(havokanim);assetFile;
+            if(bAnimationGiven){
+			    hkStringBuf assetFile(havokanim);assetFile;
 
-			hkRootLevelContainer* container = loader->load(HK_GET_DEMOS_ASSET_FILENAME(assetFile.cString()));
-			HK_ASSERT2(0x27343437, container != HK_NULL, "Could not load asset");
-			auto* ac = reinterpret_cast<hkaAnimationContainer*>(container->findObjectByType(hkaAnimationContainerClass.getName()));
+			    hkRootLevelContainer* container = loader->load(HK_GET_DEMOS_ASSET_FILENAME(assetFile.cString()));
+			    HK_ASSERT2(0x27343437, container != HK_NULL, "Could not load asset");
+			    auto* ac = reinterpret_cast<hkaAnimationContainer*>(container->findObjectByType(hkaAnimationContainerClass.getName()));
 
+                HK_ASSERT2(0x27343435, ac && (ac->m_bindings.getSize() > 0), "No binding loaded");
+                numBindings = ac->m_bindings.getSize();
+                bindings = new hkaAnimationBinding * [numBindings];
 
+                for (int i = 0; i < numBindings; i++)
+                    bindings[i] = ac->m_bindings[i];
+            }		
 
-			// We don't need these
-//            HK_ASSERT2(0x27343435, ac && (ac->m_animations.getSize() > 0), "No animation loaded");
-//            numAnims = ac->m_animations.getSize();
-//            animations = new hkaAnimation*[numAnims];
-//            for (int i = 0; i < numAnims; i++)
-//                animations[i] = ac->m_animations[i];
-
-			HK_ASSERT2(0x27343435, ac && (ac->m_bindings.getSize() > 0), "No binding loaded");
-			numBindings = ac->m_bindings.getSize();
-			bindings = new hkaAnimationBinding * [numBindings];
-
-			for (int i = 0; i < numBindings; i++)
-				bindings[i] = ac->m_bindings[i];
+			
 		}
 	}
 
@@ -322,7 +318,7 @@ int HK_CALL main(int argc, const char** argv)
 	hkResult res = hkSerializeUtil::saveTagfile(root, hkRootLevelContainer::staticClass(), stream.getStreamWriter(), HK_NULL, (hkSerializeUtil::SaveOptionBits)flags);
 
 	if (res.m_enum == hkResultEnum::HK_SUCCESS) {
-
+        
 		DestroySdkObjects(lSdkManager, lResult);
 		hkBaseSystem::quit();
 		hkMemoryInitUtil::quit();
@@ -348,6 +344,7 @@ void CreateAnimFromStack(FbxScene* pScene, FbxAnimStack* stack, int stackNum, hk
 	//    int numTracks = pScene->GetSrcObjectCount<FbxNode>();
 	//    int numTracks = skeleton->m_bones.getSize();
 	//int numTracks = bindings[stackNum]->m_transformTrackToBoneIndices.getSize();
+    std::cout << "\n\nBONES: " << skeleton->m_bones.getSize() - 1;
 	int numTracks = skeleton->m_bones.getSize()-1;
 	float duration = (float)stack->GetReferenceTimeSpan().GetDuration().GetSecondDouble();
 	float frametime = (1.0 / 30);   //always 30fps
@@ -379,7 +376,7 @@ void CreateAnimFromStack(FbxScene* pScene, FbxAnimStack* stack, int stackNum, hk
 	FbxTime currentFbxTime(0);
 	float time = 0;
 	for (int frame = 0; frame < numFrames; frame++, time += frametime) {
-
+        
 		if (frame % 10 == 0)
 			cout << "==\n";
 		// per-frame init stuff
@@ -403,18 +400,21 @@ void CreateAnimFromStack(FbxScene* pScene, FbxAnimStack* stack, int stackNum, hk
 	{
 		//        auto tParams = new hkaSplineCompressedAnimation::TrackCompressionParams();
 		//        auto aParams = new hkaSplineCompressedAnimation::AnimationCompressionParams();
-
 		auto outAnim = anim;
 		//new hkaSplineCompressedAnimation(*anim);
 		newBinding->m_animation = outAnim;
 
 		// copy transform track to bone indices
-		for (int t = 0; t < numTracks; t++)
-			newBinding->m_transformTrackToBoneIndices.pushBack(newTransformTrack[t+1]);
-		newBinding->m_originalSkeletonName = bindings[stackNum]->m_originalSkeletonName;
+        for (int t = 0; t < numTracks; t++) {
+            newBinding->m_transformTrackToBoneIndices.pushBack(newTransformTrack[t + 1]);
+        }
+        cout << "Binding Skeleton"
+		newBinding->m_originalSkeletonName = bindings[0]->m_originalSkeletonName;
+        cout << "Skeleton Bound";
         
 	}
 
+    cout << "Packing animation container";
 	animCont->m_animations.pushBack(newBinding->m_animation);
 }
 
@@ -423,15 +423,20 @@ hkRootLevelContainer* ConvertHavok(FbxScene* pScene) {
 	int numStacks = pScene->GetSrcObjectCount<FbxAnimStack>();
 
 	auto* rootContainer = new hkRootLevelContainer();
-	auto* animContainer = new hkaAnimationContainer();
+    auto* animContainer = new hkaAnimationContainer();
 
-	hkRefPtr<hkaAnimationContainer> animCont = new hkaAnimationContainer();
+    std::cout << "NS: \n" << numStacks << "\n";
 
-	for (int i = 0; i < numStacks; i++)
-		CreateAnimFromStack(pScene, pScene->GetSrcObject<FbxAnimStack>(i), i, animContainer);
+    hkRefPtr<hkaAnimationContainer> animCont = new hkaAnimationContainer();
 
-	rootContainer->m_namedVariants.pushBack(hkRootLevelContainer::NamedVariant("Merged Animation Container", animContainer, &hkaAnimationContainer::staticClass()));
+    for (int i = 0; i < numStacks; i++)
+        CreateAnimFromStack(pScene, pScene->GetSrcObject<FbxAnimStack>(i), i, animContainer);
 
+    cout << "Packing root container";
+    rootContainer->m_namedVariants.pushBack(hkRootLevelContainer::NamedVariant("Merged Animation Container", animContainer, &hkaAnimationContainer::staticClass()));
+
+   
+    cout << "Root container packed";
 	return rootContainer;
 }
 

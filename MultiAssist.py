@@ -7,6 +7,7 @@ import sys
 import dearpygui.dearpygui as dpg
 import webbrowser
 import configparser
+import errno
 from tkinter import filedialog as fd
 gui = 0
 
@@ -174,8 +175,10 @@ def assist_compress(animation_path, out_path):
 
 def to_hkx(skeleton_path, hkx_path, fbx_path, out_path) -> None:
     to_havok_check()
-    complete = subprocess.run("fbx2havok.exe -hk_skeleton " + skeleton_path + " -hk_anim " + hkx_path + " -fbx " + fbx_path + " -hkout " + out_path, capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
-    dbgprint(f"{complete.stdout}")
+    complete = subprocess.run("fbx2havok.exe -hk_skeleton \"" + skeleton_path + "\" -hk_anim \"" + hkx_path + "\" -fbx " + fbx_path + " -hkout \"" + out_path +"\"", capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
+    print(f"{complete.stdout}")
+    print(f"{complete.returncode}")
+    #print(f"{complete.stderr}")
     if not os.path.exists(out_path):
         print("fbx2havok operation failed.")
     else:
@@ -183,7 +186,7 @@ def to_hkx(skeleton_path, hkx_path, fbx_path, out_path) -> None:
 
 def to_fbx(skeleton_path, hkx_path, out_path):
     to_fbx_check()
-    complete = subprocess.run("tofbx.exe -hk_skeleton " + skeleton_path + " -hk_anim " + hkx_path + " -fbx " + out_path , capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
+    complete = subprocess.run("tofbx.exe -hk_skeleton \"" + skeleton_path + "\" -hk_anim \"" + hkx_path + "\" -fbx \"" + out_path +"\"", capture_output=True, encoding="utf8", creationflags=subprocess.CREATE_NO_WINDOW)
     dbgprint(f"{complete.stdout}")
     dbgprint(f"{complete.returncode}")
     if not os.path.exists(out_path):
@@ -212,10 +215,12 @@ def export(skeleton_path, pap_path, anim_index, output_path, file_type):
         anim_index = 0
 
     with tempfile.TemporaryDirectory() as tmp_folder:
+            tmp_output_bin_path = os.path.join(tmp_folder, "tmp_ouwut_bin")
             tmp_skel_path = os.path.join(tmp_folder, "tmp_skel")
             tmp_anim_path = os.path.join(tmp_folder, "tmp_anim")
             tmp_skel_xml_path = os.path.join(tmp_folder, "tmp_skel_xml")
             tmp_anim_bin_path  = os.path.join(tmp_folder, "tmp_anim_bin")
+            
             dbgprint(f"we have {tmp_skel_path} as tmp_skel")
             dbgprint(f"we have {tmp_anim_path} as tmp_anim")
             havok_skel = get_havok_from_sklb(sklb_data)
@@ -226,6 +231,7 @@ def export(skeleton_path, pap_path, anim_index, output_path, file_type):
                 tmp_anim.write(havok_anim)
             assist_skl_tag(tmp_skel_path, tmp_skel_xml_path)
             if (file_type=="fbx"): 
+                print()
                 assist_combine_tag(tmp_skel_path, tmp_anim_path, str(anim_index), tmp_anim_bin_path)
                 to_fbx(tmp_skel_path,tmp_anim_bin_path,output_path)
             elif (file_type=="hkxp"):
@@ -234,6 +240,7 @@ def export(skeleton_path, pap_path, anim_index, output_path, file_type):
                 assist_combine_tag(tmp_skel_path, tmp_anim_path, str(anim_index), output_path)
             elif (file_type=="xml"):
                 assist_xml(tmp_skel_path, tmp_anim_path, output_path)
+            
 
 def multi_repack(skeleton_file : str, anim_file : str, mod_file : str, anim_index, out_path : str, additive : bool=False, compress : bool=False):
     with open(skeleton_file, "rb") as s:
@@ -269,6 +276,10 @@ def multi_repack(skeleton_file : str, anim_file : str, mod_file : str, anim_inde
             tmp_pap.write(havok_pap)
         
         if(mod_file.endswith(".fbx")):
+            dbgprint("File Size A: " + str(os.path.getsize(tmp_skel_path)))
+            dbgprint("File Size B: " + str(os.path.getsize(tmp_pap_path)))
+            dbgprint("File Size C: " + str(os.path.getsize(tmp_fbx_path)))
+
             to_hkx(tmp_skel_path, tmp_pap_path, tmp_fbx_path, tmp_mod_path)
         else:
             tmp_mod_path = tmp_fbx_path
@@ -609,7 +620,9 @@ class GUI:
     def _success_check(self, path):
         if not os.path.exists(path):
             dbgprint("No file was written")
-            self.show_info("Error!","No file was written, something went wrong.")
+            self.show_info("Error!","No file was written, something went wrong.\n\nPlease ensure that input files are correct and you have\n permission to write to this export directory.")
+        elif os.path.getsize(path == 0):
+            self.show_info("Error!","A file was written but it is empty.\n\nPlease ensure input files are correct.")
         else:
             dbgprint(f"Saved to {path}")
             self.show_info("Success!","You can find your exported file at:\n" + path)
@@ -625,20 +638,26 @@ class GUI:
         if not os.path.exists(dpg.get_value("selected_pap")) or not os.path.exists(dpg.get_value("selected_sklb")):
             self.show_info("Error","One or more of the files selected does not exist.")
             return
+            
+        path = dpg.get_value("export_directory")+"/"+dpg.get_value("name")+dpg.get_value("extension")
+        if os.path.exists(path) and self._get_config('SETTINGS', 'export_iteration', True):
+                path = self._file_iteration(path)
+
+        #if not os.access(path, os.W_OK) or not os.access( path, os.X_OK):
+        #    self.show_info("Error", "You do not have permission to write to this export directory")
+        #    return
         if self.anims == []:
             self.show_info("Error","No animation selected. Did you press [Submit]?")
             return
 
         self.start_loading()
         try:
-            path = dpg.get_value("export_directory")+"/"+dpg.get_value("name")+dpg.get_value("extension")
-            if os.path.exists(path) and self._get_config('SETTINGS', 'export_iteration', True):
-                path = self._file_iteration(path)
+            
             export(dpg.get_value("selected_sklb"), dpg.get_value("selected_pap"), self.anims.index(dpg.get_value("anim_list")), path,self._get_ft())
             self._success_check(path)
         except Exception as e:
             print(e)
-            self.show_info("Error", "An error occurred within the extraction process. No file was written.")
+            self.show_info("Error", "An error occurred within the extraction process. No file was written.\n\n"+repr(e))
         self.stop_loading()
          
     def _repack_callback(self, sender, app_data):
@@ -649,11 +668,13 @@ class GUI:
             self.show_info("Error","No animation selected. Did you press [Submit]?")
             return
         
+        path = dpg.get_value("reexport_directory")+"/"+dpg.get_value("rename")+".pap"
+        if os.path.exists(path) and self._get_config('SETTINGS', 'export_iteration', True):
+            path = self._file_iteration(path)
+
         self.start_loading()
         try:
-            path = dpg.get_value("reexport_directory")+"/"+dpg.get_value("rename")+".pap"
-            if os.path.exists(path) and self._get_config('SETTINGS', 'export_iteration', True):
-                path = self._file_iteration(path)
+            
             multi_repack(dpg.get_value("selected_resklb"),
                         dpg.get_value("selected_repap"),
                         dpg.get_value("selected_fbx"), 
@@ -662,9 +683,18 @@ class GUI:
                         dpg.get_value("additive_setting"),
                         dpg.get_value("compress_setting"))
             self._success_check(path)
-        except Exception as e:
+        except IOError as e:
             print(e)
-            self.show_info("Error", "An error occurred within the extraction process. No file was written.")
+            if(e.errno == errno.EPERM or e.errno == errno.EACCES):
+                self.show_info("Error", "You do not have permission to write to that directory. No file was written.")
+            elif(e.errno == errno.EADDRINUSE):
+                self.show_info("Error", "The path you are writing to is in use. No file was written.")
+            else:
+                self.show_info("Error", "An IOError occured:\n\n"+e.strerror)
+        except Exception as err:
+            print(err)
+            self.show_info("Error", "An error occurred within the extraction process. No file was written.\n\n"+repr(err))
+
         self.stop_loading()
 
     def _repack_window(self):
@@ -794,8 +824,15 @@ class GUI:
                         
                     dpg.add_button(label="Save settings", callback=lambda:self._save_settings())
                 dpg.add_menu_item(label="Wiki", callback=lambda:webbrowser.open('https://github.com/ilmheg/MultiAssist/wiki'))
-                dpg.add_menu_item(label="0ceal0t's BlenderAssist", callback=lambda:webbrowser.open('https://github.com/0ceal0t/BlenderAssist/tree/main/BlenderAssist'))
-                dpg.add_menu_item(label="                           ", enabled=False) # one right align pls
+                with dpg.menu(label="Useful Tools & Alternatives"):
+                    dpg.add_text("Animation Editing")
+                    dpg.add_button(label="0ceal0t's BlenderAssist", callback=lambda:webbrowser.open('https://github.com/0ceal0t/BlenderAssist/tree/main/BlenderAssist'))
+                    dpg.add_button(label="0ceal0t's VFXEditor", callback=lambda:webbrowser.open('https://github.com/0ceal0t/Dalamud-VFXEditor'))
+                    dpg.add_text("File Extraction & Importing")
+                    dpg.add_button(label="FFXIV Explorer", callback=lambda:webbrowser.open('https://github.com/goaaats/ffxiv-explorer-fork'))
+                    dpg.add_button(label="TexTools", callback=lambda:webbrowser.open('https://www.ffxiv-textools.net/'))
+                    dpg.add_button(label="Penumbra", callback=lambda:webbrowser.open('https://github.com/xivdev/Penumbra/'))
+                dpg.add_menu_item(label="                       ", enabled=False) # one right align pls
                 dpg.add_menu_item(label="Report an Issue!", callback=lambda:webbrowser.open('https://github.com/ilmheg/MultiAssist/issues'))
             with dpg.group(horizontal=True):
                 dpg.add_text("MultiAssist")
