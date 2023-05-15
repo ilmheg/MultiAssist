@@ -25,7 +25,8 @@ def define_parser():
     extract_parser = subparsers.add_parser("extract", help="Extract a editable animation file, using a pap and sklb file from XIV.")
     extract_parser.add_argument("-s", "--skeleton-file", type=str, help="The input skeleton sklb file.", required=True)
     extract_parser.add_argument("-p", "--pap-file", type=str, help="The input animation pap file.", required=True)
-    extract_parser.add_argument("-i", "--anim-index", type=str, help="The index of the animation you are extracting.", required=True)
+    extract_parser.add_argument("-i", "--anim-index", type = str,
+                                help = "The index of the animation you are extracting. If input 'all', it will export all animations contained in this pap file, each has the suffix of the animation's name.", required = True)
     extract_parser.add_argument("-o", "--out-file", type=str, help="The output file.", required=True)
     extract_parser.add_argument("-t", "--file-type", type=str, help="File type to export.", required=True)
 
@@ -191,9 +192,9 @@ def to_fbx(skeleton_path, hkx_path, out_path):
         print("havok2fbx operation failed.")
     else:
         dbgprint(f"Saved importable file to {out_path}")
-       
-def export(skeleton_path, pap_path, anim_index, output_path, file_type):
 
+
+def export(skeleton_path, pap_path, anim_index_str, output_path, file_type):
     with open(pap_path, "rb") as p:
         pap_data = p.read()
     with open(skeleton_path, "rb") as s:
@@ -201,54 +202,73 @@ def export(skeleton_path, pap_path, anim_index, output_path, file_type):
 
     sklb_hdr = read_sklb_header(sklb_data)
     pap_hdr = read_pap_header(pap_data)
-    
+
     print(f"The input skeleton is for ID {sklb_hdr['skele_id']}.")
     print(f"The input animation is for ID {pap_hdr['skele_id']}.")
     print(f"If these mismatch, things will go very badly.")
-    
+
     num_anims = len(pap_hdr["anim_infos"])
-    if num_anims > 1:
-        anim_index = pap_hdr["anim_infos"][int(anim_index)]["havok_index"] # Just to be safe, unsure if this index will ever mismatch
+
+    if anim_index_str == "all":
+        print("Exporting ALL animations.")
+        out_basename_with_dir, out_ext = os.path.splitext(output_path)
+
+        for anim_index_int in range(num_anims):
+            anim_index_int = rectify_anim_index(anim_index_int, num_anims, pap_hdr)
+            anim_name = pap_hdr["anim_infos"][anim_index_int]["name"]
+            output_suffixed_path = out_basename_with_dir + "." + anim_name + out_ext
+            export_at_anim_index(anim_index_int, file_type, output_suffixed_path, pap_data, sklb_data)
     else:
-        anim_index = 0
+        anim_index_int = rectify_anim_index(int(anim_index_str), num_anims, pap_hdr)
+        export_at_anim_index(anim_index_int, file_type, output_path, pap_data, sklb_data)
 
+
+def rectify_anim_index(anim_index_int, num_anims, pap_hdr):
+    if num_anims > 1:
+        # Just to be safe, unsure if this index will ever mismatch
+        anim_index_int = pap_hdr["anim_infos"][anim_index_int]["havok_index"]
+    else:
+        anim_index_int = 0
+    return anim_index_int
+
+
+def export_at_anim_index(anim_index: int, file_type, output_path, pap_data, sklb_data):
     with tempfile.TemporaryDirectory() as tmp_folder:
-            tmp_out_bin_path = os.path.join(tmp_folder, "tmp_out_bin")
-            tmp_skel_path = os.path.join(tmp_folder, "tmp_skel")
-            tmp_anim_path = os.path.join(tmp_folder, "tmp_anim")
-            tmp_skel_xml_path = os.path.join(tmp_folder, "tmp_skel_xml")
-            tmp_anim_bin_path  = os.path.join(tmp_folder, "tmp_anim_bin")
-            
-            dbgprint(f"we have {tmp_skel_path} as tmp_skel")
-            dbgprint(f"we have {tmp_anim_path} as tmp_anim")
-            havok_skel = get_havok_from_sklb(sklb_data)
-            havok_anim = get_havok_from_pap(pap_data)
+        tmp_out_bin_path = os.path.join(tmp_folder, "tmp_out_bin")
+        tmp_skel_path = os.path.join(tmp_folder, "tmp_skel")
+        tmp_anim_path = os.path.join(tmp_folder, "tmp_anim")
+        tmp_skel_xml_path = os.path.join(tmp_folder, "tmp_skel_xml")
+        tmp_anim_bin_path = os.path.join(tmp_folder, "tmp_anim_bin")
 
-            with open(tmp_skel_path, "wb") as tmp_skel:
-                tmp_skel.write(havok_skel)
-            with open(tmp_anim_path, "wb") as tmp_anim:
-                tmp_anim.write(havok_anim)
-            assist_skl_tag(tmp_skel_path, tmp_skel_xml_path)
-            if (file_type=="fbx"): 
-                print()
-                assist_combine_tag(tmp_skel_path, tmp_anim_path, str(anim_index), tmp_anim_bin_path)
-                to_fbx(tmp_skel_path,tmp_anim_bin_path,tmp_out_bin_path)
-                tmp_out_bin_path = tmp_out_bin_path + ".fbx" # i hate u
-            elif (file_type=="hkxp"):
-                assist_combine(tmp_skel_path, tmp_anim_path, str(anim_index), tmp_out_bin_path)
-            elif (file_type=="hkxt"):
-                assist_combine_tag(tmp_skel_path, tmp_anim_path, str(anim_index), tmp_out_bin_path)
-            elif (file_type=="xml"):
-                assist_xml(tmp_skel_path, tmp_anim_path, tmp_out_bin_path)
-            
-            if(os.path.getsize(tmp_out_bin_path) == 0):
-                raise Exception("Size of temp file was 0")
+        dbgprint(f"we have {tmp_skel_path} as tmp_skel")
+        dbgprint(f"we have {tmp_anim_path} as tmp_anim")
+        havok_skel = get_havok_from_sklb(sklb_data)
+        havok_anim = get_havok_from_pap(pap_data)
 
-            with open(tmp_out_bin_path, "rb") as newbin:
-                data = newbin.read()
-            with open(output_path, "wb") as op_fbx:
-                op_fbx.write(data)
-            
+        with open(tmp_skel_path, "wb") as tmp_skel:
+            tmp_skel.write(havok_skel)
+        with open(tmp_anim_path, "wb") as tmp_anim:
+            tmp_anim.write(havok_anim)
+        assist_skl_tag(tmp_skel_path, tmp_skel_xml_path)
+        if (file_type == "fbx"):
+            print()
+            assist_combine_tag(tmp_skel_path, tmp_anim_path, str(anim_index), tmp_anim_bin_path)
+            to_fbx(tmp_skel_path, tmp_anim_bin_path, tmp_out_bin_path)
+            tmp_out_bin_path = tmp_out_bin_path + ".fbx"  # i hate u
+        elif (file_type == "hkxp"):
+            assist_combine(tmp_skel_path, tmp_anim_path, str(anim_index), tmp_out_bin_path)
+        elif (file_type == "hkxt"):
+            assist_combine_tag(tmp_skel_path, tmp_anim_path, str(anim_index), tmp_out_bin_path)
+        elif (file_type == "xml"):
+            assist_xml(tmp_skel_path, tmp_anim_path, tmp_out_bin_path)
+
+        if (os.path.getsize(tmp_out_bin_path) == 0):
+            raise Exception("Size of temp file was 0")
+
+        with open(tmp_out_bin_path, "rb") as newbin:
+            data = newbin.read()
+        with open(output_path, "wb") as op_fbx:
+            op_fbx.write(data)
 
 def multi_repack(skeleton_file : str, anim_file : str, mod_file : str, anim_index, out_path : str, additive : bool=False, compress : bool=False):
     with open(skeleton_file, "rb") as s:
